@@ -21,7 +21,7 @@ export default function HomePage() {
             Ça prend quelques minutes, et tu gardes la main sur chaque envoi.
           </p>
           <Link
-            href="/aides"
+            href="/documents"
             className={cn(
               buttonVariants({ variant: 'secondary', size: 'lg' }),
               'mt-6 h-14 gap-2 rounded-2xl px-7 text-base font-semibold',

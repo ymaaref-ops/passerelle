@@ -6,13 +6,11 @@ import { cn } from '@/lib/utils'
 import { STEP_COLORS, type StepColor } from '@/lib/step-colors'
 
 export const ETAPES: { href: string; label: string; couleur: StepColor }[] = [
-  { href: '/aides', label: 'Aides', couleur: 'violet' },
   { href: '/documents', label: 'Documents', couleur: 'blue' },
-  { href: '/eligibilite', label: 'Éligibilité', couleur: 'blue' },
-  { href: '/confirmation', label: 'Confirmation', couleur: 'green' },
-  { href: '/demarches', label: 'Démarches', couleur: 'green' },
+  { href: '/aides', label: 'Aides', couleur: 'violet' },
+  { href: '/choix', label: 'Choix', couleur: 'violet' },
+  { href: '/agents', label: 'Agents', couleur: 'green' },
   { href: '/validation', label: 'Validation', couleur: 'orange' },
-  { href: '/tableau-de-bord', label: 'Tableau de bord', couleur: 'orange' },
 ]
 
 export function ProgressSteps() {

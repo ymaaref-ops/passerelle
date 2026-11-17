@@ -75,14 +75,14 @@ export const aides: Aide[] = [
     id: 'apl',
     nom: 'APL (CAF)',
     explication:
-      'Une aide mensuelle de la CAF qui réduit ton loyer si tu es locataire, même en logement étudiant ou en location meublée.',
+      'Une aide mensuelle de la CAF qui réduit ton loyer si tu es locataire, même en logement étudiant ou en location meublée. La simulation se fait sur mesdroitssociaux.gouv.fr.',
     categorie: 'Logement',
     montant_estime: "Jusqu'à 230 €/mois",
     conditions:
-      'Être locataire de sa résidence principale, avoir des ressources sous un certain plafond, loyer conforme aux plafonds.',
+      'Être locataire de sa résidence principale, avoir des ressources sous un certain plafond, loyer conforme aux plafonds. Simulation APL : mesdroitssociaux.gouv.fr.',
     date_limite: null,
-    lien_officiel: 'https://www.caf.fr/allocataires/aides-et-demarches/droits-et-prestations/logement',
-    source: 'caf.fr',
+    lien_officiel: 'https://www.mesdroitssociaux.gouv.fr',
+    source: 'mesdroitssociaux.gouv.fr',
     date_verification: DATE_VERIFICATION,
     niveau: 'automatisee',
     regle_eligibilite: 'locataire = true ET loyer > 0 ET ressources <= plafond_apl',
@@ -104,8 +104,8 @@ export const aides: Aide[] = [
     regle_eligibilite: 'age >= 18 ET salaire_net_mensuel >= 1000',
   },
   {
-    id: 'pret-lcl',
-    nom: 'Prêt étudiant LCL',
+    id: 'pret-sg',
+    nom: 'Prêt étudiant Société Générale',
     explication:
       'Un prêt à taux avantageux pour financer tes études ou ton installation, avec possibilité de différé de remboursement.',
     categorie: 'Études',
@@ -113,15 +113,15 @@ export const aides: Aide[] = [
     conditions:
       "Avoir entre 18 et 28 ans, être inscrit dans un établissement d'enseignement supérieur, avoir une caution ou une garantie.",
     date_limite: null,
-    lien_officiel: 'https://www.lcl.fr/jeune/etudiant',
-    source: 'lcl.fr',
+    lien_officiel: 'https://particuliers.sg.fr/pret-etudiant',
+    source: 'particuliers.sg.fr',
     date_verification: DATE_VERIFICATION,
     niveau: 'automatisee',
     regle_eligibilite: 'age <= 28 ET inscrit_enseignement_superieur = true',
   },
   {
-    id: 'pret-bnp',
-    nom: 'Prêt étudiant BNP Paribas',
+    id: 'pret-cic',
+    nom: 'Prêt étudiant CIC',
     explication:
       "Un prêt étudiant avec remboursement différé jusqu'à la fin de tes études, pour financer scolarité, logement ou équipement.",
     categorie: 'Études',
@@ -129,8 +129,8 @@ export const aides: Aide[] = [
     conditions:
       "Avoir entre 18 et 28 ans, être inscrit dans l'enseignement supérieur, présenter une caution ou une garantie.",
     date_limite: null,
-    lien_officiel: 'https://mabanque.bnpparibas/fr/Pret-etudiant',
-    source: 'mabanque.bnpparibas',
+    lien_officiel: 'https://www.cic.fr/fr/particuliers/credits/pret-etudiant.html',
+    source: 'cic.fr',
     date_verification: DATE_VERIFICATION,
     niveau: 'automatisee',
     regle_eligibilite: 'age <= 28 ET inscrit_enseignement_superieur = true',
