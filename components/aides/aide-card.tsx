@@ -20,7 +20,7 @@ const STYLES = {
   },
 } as const
 
-function DemarcheBadge({ automatisee }: { automatisee: boolean }) {
+export function DemarcheBadge({ automatisee }: { automatisee: boolean }) {
   if (automatisee) {
     return (
       <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-step-green-border bg-success-soft px-3 py-1 text-xs font-semibold text-success">

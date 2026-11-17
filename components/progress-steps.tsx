@@ -8,7 +8,7 @@ import { STEP_COLORS, type StepColor } from '@/lib/step-colors'
 export const ETAPES: { href: string; label: string; couleur: StepColor }[] = [
   { href: '/documents', label: 'Documents', couleur: 'blue' },
   { href: '/aides', label: 'Aides', couleur: 'violet' },
-  { href: '/choix', label: 'Choix', couleur: 'violet' },
+  { href: '/choix', label: 'Choix', couleur: 'green' },
   { href: '/agents', label: 'Agents', couleur: 'green' },
   { href: '/validation', label: 'Validation', couleur: 'orange' },
 ]
