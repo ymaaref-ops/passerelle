@@ -3,16 +3,17 @@
 import { usePathname } from 'next/navigation'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { STEP_COLORS, type StepColor } from '@/lib/step-colors'
 
-export const ETAPES = [
-  { href: '/aides', label: 'Aides' },
-  { href: '/documents', label: 'Documents' },
-  { href: '/eligibilite', label: 'Éligibilité' },
-  { href: '/confirmation', label: 'Confirmation' },
-  { href: '/demarches', label: 'Démarches' },
-  { href: '/validation', label: 'Validation' },
-  { href: '/tableau-de-bord', label: 'Tableau de bord' },
-] as const
+export const ETAPES: { href: string; label: string; couleur: StepColor }[] = [
+  { href: '/aides', label: 'Aides', couleur: 'violet' },
+  { href: '/documents', label: 'Documents', couleur: 'blue' },
+  { href: '/eligibilite', label: 'Éligibilité', couleur: 'blue' },
+  { href: '/confirmation', label: 'Confirmation', couleur: 'green' },
+  { href: '/demarches', label: 'Démarches', couleur: 'green' },
+  { href: '/validation', label: 'Validation', couleur: 'orange' },
+  { href: '/tableau-de-bord', label: 'Tableau de bord', couleur: 'orange' },
+]
 
 export function ProgressSteps() {
   const pathname = usePathname()
@@ -42,7 +43,10 @@ export function ProgressSteps() {
             className="mt-2 h-2 overflow-hidden rounded-full bg-muted"
           >
             <div
-              className="h-full rounded-full bg-primary transition-all"
+              className={cn(
+                'h-full rounded-full transition-all',
+                enCours ? STEP_COLORS[ETAPES[indexCourant].couleur].solid : 'bg-primary',
+              )}
               style={{ width: `${pourcentage}%` }}
             />
           </div>
@@ -53,6 +57,7 @@ export function ProgressSteps() {
           {ETAPES.map((etape, i) => {
             const terminee = enCours && i < indexCourant
             const actuelle = i === indexCourant
+            const couleur = STEP_COLORS[etape.couleur]
             return (
               <li key={etape.href} className="flex flex-1 items-center last:flex-none">
                 <span
@@ -62,8 +67,7 @@ export function ProgressSteps() {
                   <span
                     className={cn(
                       'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
-                      terminee && 'bg-success text-primary-foreground',
-                      actuelle && 'bg-primary text-primary-foreground',
+                      (terminee || actuelle) && ['text-primary-foreground', couleur.solid],
                       !terminee && !actuelle && 'bg-muted text-muted-foreground',
                     )}
                   >
@@ -81,7 +85,7 @@ export function ProgressSteps() {
                 {i < ETAPES.length - 1 && (
                   <span
                     aria-hidden="true"
-                    className={cn('mx-3 h-0.5 flex-1 rounded-full', terminee ? 'bg-success' : 'bg-border')}
+                    className={cn('mx-3 h-0.5 flex-1 rounded-full', terminee ? couleur.line : 'bg-border')}
                   />
                 )}
               </li>

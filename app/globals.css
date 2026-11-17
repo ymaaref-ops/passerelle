@@ -49,6 +49,18 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-primary-soft: var(--primary-soft);
+  --color-step-blue: var(--step-blue);
+  --color-step-blue-soft: var(--step-blue-soft);
+  --color-step-blue-border: var(--step-blue-border);
+  --color-step-violet: var(--step-violet);
+  --color-step-violet-soft: var(--step-violet-soft);
+  --color-step-violet-border: var(--step-violet-border);
+  --color-step-green: var(--step-green);
+  --color-step-green-soft: var(--step-green-soft);
+  --color-step-green-border: var(--step-green-border);
+  --color-step-orange: var(--step-orange);
+  --color-step-orange-soft: var(--step-orange-soft);
+  --color-step-orange-border: var(--step-orange-border);
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -84,6 +96,18 @@
   --chart-3: oklch(0.58 0.15 55);
   --chart-4: oklch(0.55 0.21 27);
   --chart-5: oklch(0.6 0.06 258);
+  --step-blue: oklch(0.5 0.16 250);
+  --step-blue-soft: oklch(0.97 0.018 250);
+  --step-blue-border: oklch(0.89 0.05 250);
+  --step-violet: oklch(0.5 0.17 295);
+  --step-violet-soft: oklch(0.97 0.018 295);
+  --step-violet-border: oklch(0.89 0.05 295);
+  --step-green: oklch(0.5 0.12 160);
+  --step-green-soft: oklch(0.97 0.02 160);
+  --step-green-border: oklch(0.88 0.05 160);
+  --step-orange: oklch(0.55 0.14 50);
+  --step-orange-soft: oklch(0.97 0.02 65);
+  --step-orange-border: oklch(0.89 0.06 65);
   --radius: 1rem;
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.22 0.04 262);
