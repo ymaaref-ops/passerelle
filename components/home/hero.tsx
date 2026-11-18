@@ -26,13 +26,13 @@ export function Hero() {
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link
-            href="/documents"
+            href="/demarrer"
             className={cn(
               buttonVariants({ size: 'lg' }),
               'h-14 gap-2 rounded-2xl px-7 text-base font-semibold',
             )}
           >
-            Découvrir mes aides
+            Démarrer ma session
             <ArrowRight className="size-5" aria-hidden="true" />
           </Link>
           <a
