@@ -75,14 +75,14 @@ export const aides: Aide[] = [
     id: 'apl',
     nom: 'APL (CAF)',
     explication:
-      'Une aide mensuelle de la CAF qui réduit ton loyer si tu es locataire, même en logement étudiant ou en location meublée. La simulation se fait sur mesdroitssociaux.gouv.fr.',
+      'Une aide mensuelle de la CAF qui réduit ton loyer si tu es locataire, même en logement étudiant ou en location meublée. La simulation se fait sur caf.fr.',
     categorie: 'Logement',
     montant_estime: "Jusqu'à 230 €/mois",
     conditions:
-      'Être locataire de sa résidence principale, avoir des ressources sous un certain plafond, loyer conforme aux plafonds. Simulation APL : mesdroitssociaux.gouv.fr.',
+      'Être locataire de sa résidence principale, avoir des ressources sous un certain plafond, loyer conforme aux plafonds. Simulation APL : caf.fr.',
     date_limite: null,
-    lien_officiel: 'https://www.mesdroitssociaux.gouv.fr',
-    source: 'mesdroitssociaux.gouv.fr',
+    lien_officiel: 'https://www.caf.fr',
+    source: 'caf.fr',
     date_verification: DATE_VERIFICATION,
     niveau: 'automatisee',
     regle_eligibilite: 'locataire = true ET loyer > 0 ET ressources <= plafond_apl',

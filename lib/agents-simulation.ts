@@ -26,22 +26,9 @@ interface Scenario {
   resultat: string
 }
 
+// Prêts bancaires : pas encore d'agent H, scénarios simulés pour la démo.
+// L'APL, elle, vient de n8n (voir lib/agents.ts).
 const SCENARIOS: Scenario[] = [
-  {
-    id: 'apl',
-    nom: 'Simulation APL',
-    site: 'mesdroitssociaux.gouv.fr',
-    delai: 0,
-    avant: [
-      { at: 0, texte: 'Ouvre le simulateur officiel…', progression: 5 },
-      { at: 2500, texte: 'Remplit tes informations de logement…', progression: 25 },
-      { at: 5500, texte: 'Renseigne tes ressources et ton statut…', progression: 55 },
-      { at: 8500, texte: 'Calcule ton estimation…', progression: 85 },
-    ],
-    apres: [],
-    fin: 11000,
-    resultat: 'APL estimée : 210 €/mois',
-  },
   {
     id: 'banque-postale',
     nom: 'Prêt étudiant – La Banque Postale',
@@ -199,5 +186,14 @@ export function calculerStatuts(etat: EtatSimule, maintenant: number): AgentStat
 
 /** Statuts rendus avant la première lecture : identiques côté serveur et client. */
 export function statutsInitiaux(): AgentStatut[] {
-  return calculerStatuts({ debut: 0, reponses: {} }, 0)
+  const apl: AgentStatut = {
+    id: 'apl',
+    nom: 'Simulation APL',
+    site: 'caf.fr',
+    statut: 'attente',
+    etape: 'En attente de démarrage…',
+    progression: 0,
+  }
+  const simules = calculerStatuts({ debut: 0, reponses: {} }, 0).map((a) => ({ ...a, demo: true }))
+  return [apl, ...simules]
 }

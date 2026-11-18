@@ -45,6 +45,11 @@ export function AgentCard({ agent, onVoirEnDirect, onEnvoyer }: AgentCardProps) 
             <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
               <Globe className="size-3.5 shrink-0" aria-hidden="true" />
               <span className="truncate">{agent.site}</span>
+              {agent.demo && (
+                <span className="ml-1 shrink-0 rounded-full border border-border px-2 py-0.5 text-xs font-medium">
+                  Démo
+                </span>
+              )}
             </p>
           </div>
         </div>

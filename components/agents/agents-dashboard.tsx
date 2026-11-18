@@ -17,7 +17,8 @@ const COULEUR = STEP_COLORS.green
 export function AgentsDashboard() {
   const { data: agents = statutsInitiaux(), mutate } = useSWR('statuts-agents', getStatutsAgents, {
     fallbackData: statutsInitiaux(),
-    refreshInterval: (dernier) => (dernier?.every((a) => a.statut === 'termine') ? 0 : 1000),
+    // Toutes les 3 s : l'APL est lue sur n8n, inutile de l'interroger plus souvent.
+    refreshInterval: (dernier) => (dernier?.every((a) => a.statut === 'termine') ? 0 : 3000),
   })
   const [agentOuvert, setAgentOuvert] = useState<AgentId | null>(null)
 

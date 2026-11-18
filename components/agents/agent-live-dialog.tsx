@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { Lock, X } from 'lucide-react'
+import { ExternalLink, Lock, X } from 'lucide-react'
 import type { AgentStatut } from '@/lib/agents'
 import { StatutBadge } from './statut-badge'
 
@@ -93,9 +93,23 @@ export function AgentLiveDialog({ agent, onFermer }: AgentLiveDialogProps) {
           <p className="text-base text-foreground">
             <span className="font-semibold">En ce moment :</span> {agent.etape}
           </p>
-          <p className="text-sm text-muted-foreground">
-            Aperçu simulé. La vue en direct du navigateur de l&apos;agent sera disponible bientôt.
-          </p>
+          {agent.lienDirect ? (
+            <a
+              href={agent.lienDirect}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center justify-center gap-2 self-start rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none transition-colors hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring/30"
+            >
+              Ouvrir la vraie session de l&apos;agent
+              <ExternalLink className="size-4" aria-hidden="true" />
+            </a>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {agent.demo
+                ? "Agent de démonstration : aperçu simulé."
+                : "Le lien vers la session de l'agent apparaîtra dès qu'elle aura démarré."}
+            </p>
+          )}
         </div>
       )}
     </dialog>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ArrowRight, CircleCheck, CircleHelp, ShieldCheck } from 'lucide-react'
 import type { AideEvaluee } from '@/lib/eligibilite'
 import {
@@ -10,6 +10,7 @@ import {
   construireRecapitulatif,
   estUnPret,
 } from '@/lib/choix'
+import { lancerDemarches } from '@/lib/n8n'
 import { cn } from '@/lib/utils'
 import { AideChoix } from './aide-choix'
 import { MontantPret } from './montant-pret'
@@ -56,6 +57,9 @@ export function ChoixForm({ droit, peutEtre }: ChoixFormProps) {
   const [selection, setSelection] = useState<ReadonlySet<string>>(() => new Set(SELECTION_PAR_DEFAUT))
   const [montant, setMontant] = useState(MONTANT_PAR_DEFAUT)
   const [accord, setAccord] = useState(false)
+  const [envoi, setEnvoi] = useState(false)
+  const [erreur, setErreur] = useState<string | null>(null)
+  const router = useRouter()
 
   const toutes = useMemo(() => [...droit, ...peutEtre], [droit, peutEtre])
   const aides = useMemo(() => toutes.map((e) => e.aide), [toutes])
@@ -77,6 +81,19 @@ export function ChoixForm({ droit, peutEtre }: ChoixFormProps) {
   const peutLancer = accord && selection.size > 0
   const parametres = new URLSearchParams({ aides: [...selection].join(',') })
   if (unPretEstCoche) parametres.set('montant', String(montant))
+
+  // Envoie les aides cochées à n8n (workflow 2), qui lance les agents H, puis ouvre la page de suivi.
+  async function lancer() {
+    setEnvoi(true)
+    setErreur(null)
+    try {
+      await lancerDemarches(selection)
+      router.push(`/agents?${parametres.toString()}`)
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : "Les agents n'ont pas pu être lancés.")
+      setEnvoi(false)
+    }
+  }
 
   const classesBouton =
     'inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-step-green px-8 text-lg font-bold text-white transition-colors outline-none focus-visible:ring-4 focus-visible:ring-step-green/40 sm:w-auto'
@@ -162,10 +179,16 @@ export function ChoixForm({ droit, peutEtre }: ChoixFormProps) {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {peutLancer ? (
-            <Link href={`/agents?${parametres.toString()}`} className={cn(classesBouton, 'hover:bg-step-green/90')}>
-              Lancer les agents
+            <button
+              type="button"
+              onClick={lancer}
+              disabled={envoi}
+              aria-busy={envoi}
+              className={cn(classesBouton, 'hover:bg-step-green/90 disabled:cursor-wait disabled:opacity-80')}
+            >
+              {envoi ? 'Lancement…' : 'Lancer les agents'}
               <ArrowRight className="size-5" aria-hidden="true" />
-            </Link>
+            </button>
           ) : (
             <button
               type="button"
@@ -176,6 +199,11 @@ export function ChoixForm({ droit, peutEtre }: ChoixFormProps) {
               Lancer les agents
               <ArrowRight className="size-5" aria-hidden="true" />
             </button>
+          )}
+          {erreur && (
+            <p role="alert" className="text-sm font-medium text-danger">
+              {erreur}
+            </p>
           )}
           {!peutLancer && (
             <p id="aide-bouton" className="text-sm text-muted-foreground">

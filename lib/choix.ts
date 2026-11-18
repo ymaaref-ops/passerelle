@@ -51,7 +51,7 @@ export function construireRecapitulatif(
   const montant = formaterEuros(montantPret)
 
   if (selection.has('apl')) {
-    lignes.push({ id: 'apl', texte: 'simuler ton APL sur mesdroitssociaux.gouv.fr' })
+    lignes.push({ id: 'apl', texte: 'simuler ton APL sur caf.fr' })
     agents += 1
   }
 
