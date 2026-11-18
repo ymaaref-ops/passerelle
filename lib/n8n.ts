@@ -83,3 +83,35 @@ export async function lireEtat(): Promise<EtatN8n> {
   if (!reponse.ok) throw new Error(`Passerelle ne répond pas (erreur ${reponse.status}).`)
   return reponse.json()
 }
+
+export interface DocumentN8n {
+  id: string
+  type: string
+  statut: string
+  champs_extraits: Record<string, unknown> | null
+  anomalies: { code: string; message: string; gravite: 'bloquante' | 'a_verifier' }[] | null
+}
+
+export interface EtatDocumentsN8n extends EtatN8n {
+  documents?: DocumentN8n[]
+}
+
+/** Envoie les documents au workflow 1 (lecture par Qwen, contrôle croisé, profil). Renvoie l'id du nouvel étudiant. */
+export async function deposerDocuments(donnees: FormData): Promise<string> {
+  const reponse = await fetch(`${N8N_URL}/passerelle/depot`, { method: 'POST', body: donnees })
+  if (!reponse.ok) throw new Error(`Tes documents n'ont pas pu être envoyés (erreur ${reponse.status}).`)
+  const json = (await reponse.json()) as { etudiant_id?: string }
+  if (!json.etudiant_id) throw new Error("Passerelle n'a pas renvoyé de dossier.")
+  setEtudiantId(json.etudiant_id)
+  return json.etudiant_id
+}
+
+/** Lit l'état d'un étudiant précis (documents lus, anomalies, démarches). */
+export async function lireEtatEtudiant(etudiantId: string): Promise<EtatDocumentsN8n> {
+  const reponse = await fetch(
+    `${N8N_URL}/passerelle/etat?etudiant_id=${encodeURIComponent(etudiantId)}`,
+    { cache: 'no-store' },
+  )
+  if (!reponse.ok) throw new Error(`Passerelle ne répond pas (erreur ${reponse.status}).`)
+  return reponse.json()
+}
