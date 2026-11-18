@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, CircleCheck, CircleHelp, ShieldCheck } from 'lucide-react'
 import type { AideEvaluee } from '@/lib/eligibilite'
@@ -11,6 +11,8 @@ import {
   estUnPret,
 } from '@/lib/choix'
 import { lancerDemarches } from '@/lib/n8n'
+import { lireSituation, type Situation } from '@/lib/session'
+import { ajusterSelonSituation } from '@/lib/situation-aides'
 import { cn } from '@/lib/utils'
 import { AideChoix } from './aide-choix'
 import { MontantPret } from './montant-pret'
@@ -53,7 +55,14 @@ function TitreSection({
   )
 }
 
-export function ChoixForm({ droit, peutEtre }: ChoixFormProps) {
+export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial }: ChoixFormProps) {
+  // Ne propose que les aides qui correspondent à la situation donnée par l'étudiant.
+  const [situation, setSituation] = useState<Situation | null>(null)
+  useEffect(() => setSituation(lireSituation()), [])
+  const { droit, peutEtre } = useMemo(
+    () => ajusterSelonSituation({ droit: droitInitial, peutEtre: peutEtreInitial, nonConcerne: [] }, situation),
+    [droitInitial, peutEtreInitial, situation],
+  )
   const [selection, setSelection] = useState<ReadonlySet<string>>(() => new Set(SELECTION_PAR_DEFAUT))
   const [montant, setMontant] = useState(MONTANT_PAR_DEFAUT)
   const [accord, setAccord] = useState(false)

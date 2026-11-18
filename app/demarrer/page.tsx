@@ -1,29 +1,30 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, Home, Search } from 'lucide-react'
+import { ArrowRight, Search, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Démarrer ma session — Passerelle',
   description:
-    'Dis-nous si tu as déjà un logement : on te montre tes aides, ou on t’aide d’abord à trouver où habiter.',
+    'Découvre toutes tes aides étudiantes, ou fais-toi aider pour trouver un logement.',
 }
 
 const CHOIX = [
   {
-    href: '/documents',
-    titre: "Oui, j'ai un logement",
-    texte: 'Dépose tes documents : on te montre les aides auxquelles tu as droit, comme l’APL.',
-    Icone: Home,
-    couleur: 'border-step-blue-border bg-step-blue-soft hover:border-step-blue',
+    href: '/situation',
+    titre: 'Découvrir toutes mes aides',
+    texte:
+      'Logement, études, travail, santé, vie quotidienne : on trouve tout ce à quoi tu as droit, et nos agents font les démarches.',
+    Icone: Sparkles,
+    couleur: 'border-step-blue bg-step-blue-soft hover:border-step-blue sm:col-span-2',
     pastille: 'bg-step-blue',
   },
   {
     href: '/recherche-logement',
-    titre: 'Non, je cherche un logement',
-    texte: 'Un agent t’aide d’abord à trouver où habiter.',
+    titre: 'Trouver un logement',
+    texte: 'Pas encore de logement ? Un agent t’aide à en trouver un adapté à ton budget.',
     Icone: Search,
-    couleur: 'border-step-violet-border bg-step-violet-soft hover:border-step-violet',
+    couleur: 'border-step-violet-border bg-step-violet-soft hover:border-step-violet sm:col-span-2',
     pastille: 'bg-step-violet',
   },
 ] as const
@@ -34,10 +35,11 @@ export default function DemarrerPage() {
       <header className="mb-8">
         <p className="text-sm font-semibold text-primary">Ta session</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
-          As-tu déjà un logement ?
+          Par quoi on commence ?
         </h1>
         <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
-          Ta réponse nous dit par où commencer. Tu pourras toujours revenir en arrière.
+          Tu pourras faire l&apos;un puis l&apos;autre : une fois ton logement trouvé, on s&apos;occupe
+          aussi de tes aides.
         </p>
       </header>
 

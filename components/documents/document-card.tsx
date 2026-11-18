@@ -8,6 +8,7 @@ import {
   Home,
   IdCard,
   Loader2,
+  Receipt,
   RefreshCw,
   ScanText,
   UploadCloud,
@@ -23,6 +24,7 @@ const ICONES: Record<DocumentRequis, typeof FileText> = {
   bail: Home,
   certificat_scolarite: GraduationCap,
   avis_imposition: FileText,
+  fiche_paie: Receipt,
 }
 
 interface DocumentCardProps {

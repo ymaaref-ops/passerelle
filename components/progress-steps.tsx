@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { STEP_COLORS, type StepColor } from '@/lib/step-colors'
 
 export const ETAPES: { href: string; label: string; couleur: StepColor }[] = [
+  { href: '/situation', label: 'Situation', couleur: 'blue' },
   { href: '/documents', label: 'Documents', couleur: 'blue' },
   { href: '/aides', label: 'Aides', couleur: 'violet' },
   { href: '/choix', label: 'Choix', couleur: 'green' },

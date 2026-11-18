@@ -2,15 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { AlertTriangle, ArrowRight, CheckCircle2, Loader2, Send, ShieldCheck } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { CameraDialog } from '@/components/documents/camera-dialog'
 import { DocumentCard } from '@/components/documents/document-card'
 import type { StatutDocumentUI } from '@/components/documents/statut-pastille'
 import { etudiantCourant } from '@/lib/data'
-import { DOCUMENTS_REQUIS, verifierFichier, type DocumentRequis } from '@/lib/documents-demo'
+import { documentsPour, verifierFichier, type DefinitionDocument, type DocumentRequis } from '@/lib/documents-demo'
 import { deposerDocuments, lireEtatEtudiant, type DocumentN8n } from '@/lib/n8n'
-import { marquerDocumentsValides } from '@/lib/session'
+import { lireSituation, marquerDocumentsValides, type Situation } from '@/lib/session'
 import { cn } from '@/lib/utils'
 
 /** Type de document dans l'interface → type renvoyé par la lecture IA (workflow 1). */
@@ -19,6 +20,7 @@ const TYPE_N8N: Record<DocumentRequis, string> = {
   bail: 'bail',
   certificat_scolarite: 'certificat_scolarite',
   avis_imposition: 'avis_imposition',
+  fiche_paie: 'fiche_paie',
 }
 
 /** Temps maximum d'attente de la lecture des documents. */
@@ -32,6 +34,7 @@ const VIDE: Record<DocumentRequis, File | null> = {
   bail: null,
   certificat_scolarite: null,
   avis_imposition: null,
+  fiche_paie: null,
 }
 
 function texte(v: unknown): string {
@@ -49,14 +52,16 @@ function extraitLu(type: DocumentRequis, c: Record<string, unknown>): string {
       return `${texte(c.etablissement)} · année ${texte(c.annee_universitaire)}`
     case 'avis_imposition':
       return `Avis ${texte(c.annee_avis)} sur les revenus ${texte(c.annee_revenus)} · ${texte(c.declarants)}`
+    case 'fiche_paie':
+      return `${texte(c.employeur)} · ${texte(c.periode)} · net ${texte(c.net_a_payer)} €`
   }
 }
 
 export function DocumentsWorkspace() {
   const [fichiers, setFichiers] = useState(VIDE)
   const [erreursFichier, setErreursFichier] = useState<Partial<Record<DocumentRequis, string>>>({})
-  const [ressources, setRessources] = useState('')
-  const [boursier, setBoursier] = useState<'oui' | 'non' | ''>('')
+  const router = useRouter()
+  const [situation, setSituation] = useState<Situation | null>(null)
   const [accord, setAccord] = useState(false)
   const [phase, setPhase] = useState<Phase>('saisie')
   const [erreur, setErreur] = useState<string | null>(null)
@@ -71,16 +76,25 @@ export function DocumentsWorkspace() {
     if (sondage.current) window.clearTimeout(sondage.current)
   }, [])
 
+  // Les documents demandés dépendent de la situation : sans elle, on repasse par l'étape Situation.
+  useEffect(() => {
+    const s = lireSituation()
+    if (s) setSituation(s)
+    else router.replace('/situation')
+  }, [router])
+
+  const DOCUMENTS_REQUIS: DefinitionDocument[] = situation ? documentsPour(situation) : []
+
   // Document lu par l'IA pour chaque type attendu.
   const parType = (type: DocumentRequis) => lus.find((d) => d.type === TYPE_N8N[type])
   const bloquantes = (d?: DocumentN8n) => (d?.anomalies ?? []).filter((a) => a.gravite === 'bloquante')
 
   const tousDeposes = DOCUMENTS_REQUIS.every((d) => fichiers[d.type])
-  const ressourcesOk = ressources.trim() !== '' && !Number.isNaN(Number(ressources))
-  const peutEnvoyer = tousDeposes && ressourcesOk && boursier !== '' && accord && phase === 'saisie'
+  const peutEnvoyer = situation !== null && tousDeposes && accord && phase === 'saisie'
 
   const dossierComplet =
     phase === 'resultat' &&
+    DOCUMENTS_REQUIS.length > 0 &&
     DOCUMENTS_REQUIS.every((d) => {
       const lu = parType(d.type)
       return lu && lu.statut !== 'rejete' && bloquantes(lu).length === 0
@@ -135,8 +149,10 @@ export function DocumentsWorkspace() {
       donnees.append('prenom', etudiantCourant.prenom)
       donnees.append('nom', etudiantCourant.nom)
       donnees.append('aides', 'apl')
-      donnees.append('ressources_12_mois', String(Number(ressources)))
-      donnees.append('boursier', boursier === 'oui' ? 'true' : 'false')
+      donnees.append('ressources_12_mois', String(situation?.ressources ?? 0))
+      if (situation?.bourse === 'oui' || situation?.bourse === 'non') {
+        donnees.append('boursier', situation.bourse === 'oui' ? 'true' : 'false')
+      }
       for (const d of DOCUMENTS_REQUIS) {
         const f = fichiers[d.type]
         if (f) donnees.append('photo', f, f.name)
@@ -260,7 +276,7 @@ export function DocumentsWorkspace() {
                   ? 'Remplace le document signalé, puis renvoie ton dossier.'
                   : phase === 'analyse'
                     ? 'Vérification en cours…'
-                    : 'Envoie tes 4 documents pour continuer.'}
+                    : `Envoie tes ${DOCUMENTS_REQUIS.length} documents pour continuer.`}
               </p>
             </>
           )}
@@ -325,54 +341,9 @@ export function DocumentsWorkspace() {
           aria-labelledby="titre-envoi"
           className="mt-6 flex flex-col gap-5 rounded-3xl border border-border bg-card p-5 sm:p-6"
         >
-          <div>
-            <h2 id="titre-envoi" className="text-xl font-bold text-foreground">
-              Deux questions pour ta simulation d&apos;APL
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              La CAF les demande et elles ne figurent pas sur tes documents.
-            </p>
-          </div>
-
-          <label className="flex flex-col gap-1.5">
-            <span className="font-medium text-foreground">Tes revenus des 12 derniers mois (en €)</span>
-            <span className="text-sm text-muted-foreground">Salaires, alternance, job étudiant… mets 0 si tu n&apos;en as pas.</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={ressources}
-              onChange={(e) => setRessources(e.target.value)}
-              disabled={phase === 'analyse'}
-              className="h-12 max-w-xs rounded-xl border border-border bg-background px-4 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/30"
-            />
-          </label>
-
-          <fieldset className="flex flex-col gap-2">
-            <legend className="font-medium text-foreground">Es-tu boursier ou boursière cette année ?</legend>
-            <div className="flex gap-3">
-              {(['oui', 'non'] as const).map((v) => (
-                <label
-                  key={v}
-                  className={cn(
-                    'flex h-11 cursor-pointer items-center gap-2 rounded-xl border px-4',
-                    boursier === v ? 'border-step-blue bg-step-blue-soft' : 'border-border',
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="boursier"
-                    value={v}
-                    checked={boursier === v}
-                    onChange={() => setBoursier(v)}
-                    disabled={phase === 'analyse'}
-                    className="accent-step-blue"
-                  />
-                  {v === 'oui' ? 'Oui' : 'Non'}
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          <h2 id="titre-envoi" className="text-xl font-bold text-foreground">
+            Envoyer mes documents
+          </h2>
 
           <label className="flex cursor-pointer items-start gap-3">
             <input
@@ -408,10 +379,8 @@ export function DocumentsWorkspace() {
             {!peutEnvoyer && phase === 'saisie' && (
               <p className="text-sm text-muted-foreground">
                 {!tousDeposes
-                  ? 'Ajoute tes 4 documents.'
-                  : !ressourcesOk || boursier === ''
-                    ? 'Réponds aux deux questions.'
-                    : 'Coche la case pour accepter l’analyse.'}
+                  ? `Ajoute tes ${DOCUMENTS_REQUIS.length} documents.`
+                  : 'Coche la case pour accepter l’analyse.'}
               </p>
             )}
           </div>
@@ -426,7 +395,7 @@ export function DocumentsWorkspace() {
       {dossierComplet && (
         <p className="mt-4 flex items-center gap-2 font-semibold text-success">
           <CheckCircle2 className="size-5" aria-hidden="true" />
-          Tes 4 documents sont vérifiés.
+          Tes {DOCUMENTS_REQUIS.length} documents sont vérifiés.
         </p>
       )}
 

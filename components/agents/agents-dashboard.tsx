@@ -52,7 +52,7 @@ export function AgentsDashboard() {
 
       <header className={cn('flex flex-col gap-6 rounded-3xl border p-6 sm:p-8', COULEUR.card)}>
         <div className="max-w-2xl">
-          <p className={cn('text-sm font-semibold', COULEUR.text)}>Étape 4 sur 5</p>
+          <p className={cn('text-sm font-semibold', COULEUR.text)}>Étape 5 sur 6</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
             {toutTermine
               ? total === 1
