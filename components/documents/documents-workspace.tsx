@@ -15,6 +15,7 @@ import {
   verifierFichier,
   type DocumentRequis,
 } from '@/lib/documents-demo'
+import { marquerDocumentsValides } from '@/lib/session'
 import { cn } from '@/lib/utils'
 
 interface EtatDocument {
@@ -54,6 +55,12 @@ export function DocumentsWorkspace() {
   const controles = getControles(avisValides)
   const controleFini = tousAnalyses && controlesResolus >= controles.length
   const controleEchoue = controleFini ? controles.find((c) => !c.ok) : undefined
+  // On ne passe aux aides que si les 4 documents sont vérifiés et que le contrôle croisé est bon.
+  const dossierComplet = controleFini && !controleEchoue
+
+  useEffect(() => {
+    marquerDocumentsValides(dossierComplet)
+  }, [dossierComplet])
 
   useEffect(() => {
     if (!tousAnalyses) return
@@ -159,16 +166,42 @@ export function DocumentsWorkspace() {
             })}
           </ul>
         </div>
-        <Link
-          href="/aides"
-          className={cn(
-            buttonVariants({ size: 'lg' }),
-            'h-12 shrink-0 gap-2 rounded-2xl px-6 text-base font-semibold',
+        <div className="flex shrink-0 flex-col gap-1.5 sm:items-end">
+          {dossierComplet ? (
+            <Link
+              href="/aides"
+              className={cn(
+                buttonVariants({ size: 'lg' }),
+                'h-12 gap-2 rounded-2xl px-6 text-base font-semibold',
+              )}
+            >
+              Voir mes aides
+              <ArrowRight className="size-5" aria-hidden="true" />
+            </Link>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled
+                aria-describedby="aide-voir-aides"
+                className={cn(
+                  buttonVariants({ size: 'lg' }),
+                  'h-12 cursor-not-allowed gap-2 rounded-2xl bg-muted px-6 text-base font-semibold text-muted-foreground',
+                )}
+              >
+                Voir mes aides
+                <ArrowRight className="size-5" aria-hidden="true" />
+              </button>
+              <p id="aide-voir-aides" className="text-sm text-muted-foreground sm:text-right">
+                {controleEchoue
+                  ? 'Remplace le document signalé pour continuer.'
+                  : tousAnalyses
+                    ? 'Contrôle croisé en cours…'
+                    : `Dépose tes ${DOCUMENTS_REQUIS.length} documents pour continuer.`}
+              </p>
+            </>
           )}
-        >
-          Voir mes aides
-          <ArrowRight className="size-5" aria-hidden="true" />
-        </Link>
+        </div>
       </section>
 
       <ul className="mt-6 grid gap-4 md:grid-cols-2">

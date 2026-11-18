@@ -3,6 +3,7 @@ import { AidesBanner } from '@/components/aides/aides-banner'
 import { AidesNonConcernees, AidesSection } from '@/components/aides/aides-section'
 import { calculerAge, etudiantCourant } from '@/lib/data'
 import { trierAides } from '@/lib/eligibilite'
+import { GardeDocuments } from '@/components/garde-documents'
 import { STEP_COLORS } from '@/lib/step-colors'
 import { cn } from '@/lib/utils'
 
@@ -17,6 +18,7 @@ export default function AidesPage() {
   const { prenom, alternant, loyer, date_naissance } = etudiantCourant
 
   return (
+    <GardeDocuments>
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:py-12">
       <header className="mb-8 max-w-2xl">
         <p className={cn('text-sm font-semibold', STEP_COLORS.violet.text)}>Étape 2 sur 5</p>
@@ -41,5 +43,6 @@ export default function AidesPage() {
         <AidesNonConcernees aides={nonConcerne} />
       </div>
     </div>
+    </GardeDocuments>
   )
 }
