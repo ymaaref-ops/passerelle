@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { AgentsDashboard } from '@/components/agents/agents-dashboard'
 
 export const metadata: Metadata = {
@@ -8,5 +9,10 @@ export const metadata: Metadata = {
 }
 
 export default function AgentsPage() {
-  return <AgentsDashboard />
+  // Suspense : le tableau de bord lit les aides cochées dans l'adresse (?aides=…).
+  return (
+    <Suspense>
+      <AgentsDashboard />
+    </Suspense>
+  )
 }
