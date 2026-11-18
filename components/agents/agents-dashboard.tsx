@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
@@ -10,7 +9,6 @@ import { statutsInitiaux } from '@/lib/agents-simulation'
 import { STEP_COLORS } from '@/lib/step-colors'
 import { cn } from '@/lib/utils'
 import { AgentCard } from './agent-card'
-import { AgentLiveDialog } from './agent-live-dialog'
 import { NotificationAgents } from './notification-agents'
 
 const COULEUR = STEP_COLORS.green
@@ -37,7 +35,6 @@ export function AgentsDashboard() {
     refreshInterval: (dernier) => (dernier?.filter(garder).every((a) => a.statut === 'termine') ? 0 : 3000),
   })
   const agents = tous.filter(garder)
-  const [agentOuvert, setAgentOuvert] = useState<AgentId | null>(null)
 
   const total = agents.length
   const termines = agents.filter((a) => a.statut === 'termine').length
@@ -100,7 +97,6 @@ export function AgentsDashboard() {
           <AgentCard
             key={agent.id}
             agent={agent}
-            onVoirEnDirect={() => setAgentOuvert(agent.id)}
             onEnvoyer={(reponse) => envoyer(agent.id, reponse)}
           />
         ))}
@@ -121,11 +117,6 @@ export function AgentsDashboard() {
           </p>
         )}
       </footer>
-
-      <AgentLiveDialog
-        agent={agents.find((a) => a.id === agentOuvert) ?? null}
-        onFermer={() => setAgentOuvert(null)}
-      />
     </div>
   )
 }

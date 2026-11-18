@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleCheck, Eye, Globe, Home, Landmark } from 'lucide-react'
+import { CircleCheck, Globe, Home, Landmark } from 'lucide-react'
 import type { AgentId, AgentStatut } from '@/lib/agents'
 import { cn } from '@/lib/utils'
 import { FormulaireAgent } from './formulaire-agent'
@@ -15,11 +15,10 @@ const ICONES: Record<AgentId, typeof Home> = {
 
 interface AgentCardProps {
   agent: AgentStatut
-  onVoirEnDirect: () => void
   onEnvoyer: (reponse: string) => Promise<void>
 }
 
-export function AgentCard({ agent, onVoirEnDirect, onEnvoyer }: AgentCardProps) {
+export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
   const Icone = ICONES[agent.id]
   const style = STYLES_STATUT[agent.statut]
   const idTitre = `titre-${agent.id}`
@@ -103,14 +102,6 @@ export function AgentCard({ agent, onVoirEnDirect, onEnvoyer }: AgentCardProps) 
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onVoirEnDirect}
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border bg-card px-5 text-sm font-semibold text-primary outline-none transition-colors hover:bg-primary-soft focus-visible:ring-4 focus-visible:ring-ring/30"
-      >
-        <Eye className="size-4" aria-hidden="true" />
-        Voir l&apos;agent en direct
-      </button>
     </article>
   )
 }
