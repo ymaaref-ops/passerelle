@@ -6,8 +6,8 @@ export const MONTANT_MAX = 15000
 export const MONTANT_PAR_DEFAUT = 8000
 export const MONTANT_PAS = 500
 
-// APL + les trois prêts bancaires : 4 agents en parallèle par défaut.
-export const SELECTION_PAR_DEFAUT = ['apl', 'pret-lbp', 'pret-sg', 'pret-cic']
+// Rien n'est coché par défaut : c'est l'étudiant qui choisit lui-même ses aides.
+export const SELECTION_PAR_DEFAUT: string[] = []
 
 export function estUnPret(aide: Aide): boolean {
   return aide.id.startsWith('pret-')
