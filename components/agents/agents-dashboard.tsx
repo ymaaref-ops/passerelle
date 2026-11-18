@@ -1,30 +1,51 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { ArrowRight } from 'lucide-react'
-import { envoyerReponseAgent, getStatutsAgents, type AgentId } from '@/lib/agents'
-import { statutsInitiaux } from '@/lib/agents-simulation'
+import { envoyerReponseAgent, getStatutsAgents, statutsInitiaux, type AgentId } from '@/lib/agents'
 import { STEP_COLORS } from '@/lib/step-colors'
 import { cn } from '@/lib/utils'
 import { AgentCard } from './agent-card'
-import { AgentLiveDialog } from './agent-live-dialog'
 import { NotificationAgents } from './notification-agents'
 
 const COULEUR = STEP_COLORS.green
 
-export function AgentsDashboard() {
-  const { data: agents = statutsInitiaux(), mutate } = useSWR('statuts-agents', getStatutsAgents, {
-    fallbackData: statutsInitiaux(),
-    refreshInterval: (dernier) => (dernier?.every((a) => a.statut === 'termine') ? 0 : 1000),
-  })
-  const [agentOuvert, setAgentOuvert] = useState<AgentId | null>(null)
+// Aide cochée sur la page Choix → agent affiché ici.
+const AGENT_PAR_AIDE: Record<string, AgentId> = {
+  apl: 'apl',
+  'prime-activite': 'prime-activite',
+  'pret-lbp': 'prets',
+  'pret-sg': 'prets',
+  'pret-cic': 'prets',
+  'pret-etat': 'prets',
+  visale: 'visale',
+  'mobili-jeune': 'mobili-jeune',
+}
 
-  const total = agents.length
-  const termines = agents.filter((a) => a.statut === 'termine').length
-  const toutTermine = termines === total
-  const progressionGlobale = Math.round(agents.reduce((somme, a) => somme + a.progression, 0) / total)
+export function AgentsDashboard() {
+  // On n'affiche que les agents des aides cochées par l'étudiant (paramètre ?aides=…).
+  const parametre = useSearchParams().get('aides')
+  const choisis = parametre
+    ? new Set(parametre.split(',').map((id) => AGENT_PAR_AIDE[id]).filter(Boolean))
+    : null
+  const garder = (a: { id: AgentId }) => !choisis || choisis.has(a.id)
+
+  const { data: tous = statutsInitiaux(), mutate } = useSWR('statuts-agents', getStatutsAgents, {
+    fallbackData: statutsInitiaux(),
+    // Toutes les 3 s : l'APL est lue sur n8n, inutile de l'interroger plus souvent.
+    refreshInterval: (dernier) => (dernier?.filter(garder).filter((a) => !a.bientot).every((a) => a.statut === 'termine') ? 0 : 3000),
+  })
+  const agents = tous.filter(garder)
+  // Les agents pas encore activés ne comptent pas dans l'avancement.
+  const actifs = agents.filter((a) => !a.bientot)
+
+  const total = actifs.length
+  const termines = actifs.filter((a) => a.statut === 'termine').length
+  const toutTermine = total > 0 && termines === total
+  const seulementBientot = total === 0 && agents.length > 0
+  const progressionGlobale = total ? Math.round(actifs.reduce((somme, a) => somme + a.progression, 0) / total) : 0
 
   async function envoyer(agentId: AgentId, reponse: string) {
     await envoyerReponseAgent(agentId, reponse)
@@ -37,14 +58,22 @@ export function AgentsDashboard() {
 
       <header className={cn('flex flex-col gap-6 rounded-3xl border p-6 sm:p-8', COULEUR.card)}>
         <div className="max-w-2xl">
-          <p className={cn('text-sm font-semibold', COULEUR.text)}>Étape 4 sur 5</p>
+          <p className={cn('text-sm font-semibold', COULEUR.text)}>Étape 5 sur 6</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
-            {toutTermine
-              ? `Tes ${total} agents ont terminé`
-              : `${total} agents travaillent en parallèle pour toi`}
+            {seulementBientot
+              ? 'Tes demandes seront bientôt préparées'
+              : toutTermine
+              ? total === 1
+                ? 'Ton agent a terminé'
+                : `Tes ${total} agents ont terminé`
+              : total === 1
+                ? 'Ton agent travaille pour toi'
+                : `${total} agents travaillent en parallèle pour toi`}
           </h1>
           <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
-            {toutTermine
+            {seulementBientot
+              ? 'Ces agents arrivent bientôt sur Passerelle. En attendant, on te guide pas à pas.'
+              : toutTermine
               ? "Tout est prêt. Tu vas pouvoir vérifier chaque résultat avant l'envoi."
               : 'Reste sur cette page : un agent peut avoir besoin de toi à tout moment.'}
           </p>
@@ -78,7 +107,6 @@ export function AgentsDashboard() {
           <AgentCard
             key={agent.id}
             agent={agent}
-            onVoirEnDirect={() => setAgentOuvert(agent.id)}
             onEnvoyer={(reponse) => envoyer(agent.id, reponse)}
           />
         ))}
@@ -95,15 +123,10 @@ export function AgentsDashboard() {
           </Link>
         ) : (
           <p className="text-base text-muted-foreground">
-            Le bouton « Voir les résultats » apparaîtra quand les {total} agents auront terminé.
+            Le bouton « Voir les résultats » apparaîtra quand {total === 1 ? 'ton agent aura' : `les ${total} agents auront`} terminé.
           </p>
         )}
       </footer>
-
-      <AgentLiveDialog
-        agent={agents.find((a) => a.id === agentOuvert) ?? null}
-        onFermer={() => setAgentOuvert(null)}
-      />
     </div>
   )
 }

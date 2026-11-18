@@ -19,8 +19,8 @@ export const DEMARCHES: Record<DemarcheId, DemarcheInfo> = {
     id: 'apl',
     nom: 'Simulation APL',
     destinataire: 'CAF',
-    site: 'mesdroitssociaux.gouv.fr',
-    url: 'https://www.mesdroitssociaux.gouv.fr/',
+    site: 'caf.fr',
+    url: 'https://www.caf.fr/',
   },
   'banque-postale': {
     id: 'banque-postale',

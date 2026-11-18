@@ -1,7 +1,7 @@
 // Simulation FICTIVE de l'analyse des documents — sera remplacée par une vraie analyse (OCR / IA).
 import { etudiantCourant as etudiant } from '@/lib/data'
 
-export type DocumentRequis = 'identite' | 'bail' | 'certificat_scolarite' | 'avis_imposition'
+export type DocumentRequis = 'identite' | 'bail' | 'certificat_scolarite' | 'avis_imposition' | 'fiche_paie'
 
 export interface DefinitionDocument {
   type: DocumentRequis
@@ -30,7 +30,21 @@ export const DOCUMENTS_REQUIS: DefinitionDocument[] = [
     titre: "Avis d'imposition des parents",
     description: "Le dernier avis d'imposition du foyer fiscal de tes parents.",
   },
+  {
+    type: 'fiche_paie',
+    titre: 'Fiche de paie',
+    description: 'Ta dernière fiche de paie (alternance ou job étudiant).',
+  },
 ]
+
+/** Documents demandés selon la situation : bail si locataire, fiche de paie si l'étudiant travaille. */
+export function documentsPour(situation: { logement: string; activite: string }): DefinitionDocument[] {
+  return DOCUMENTS_REQUIS.filter((d) => {
+    if (d.type === 'bail') return situation.logement === 'locataire'
+    if (d.type === 'fiche_paie') return situation.activite !== 'aucune'
+    return true
+  })
+}
 
 export const DUREE_ANALYSE_MS = 2000
 export const TAILLE_MAX_OCTETS = 10 * 1024 * 1024
@@ -65,6 +79,8 @@ export function extraitDocument(type: DocumentRequis, avisValides: number): stri
       return `${etudiant.ecole} · année 2026-2027`
     case 'avis_imposition':
       return `Avis d'imposition ${avisValides >= 2 ? ANNEE_AVIS_ATTENDUE : ANNEE_AVIS_ATTENDUE - 1} · foyer ${etudiant.nom}`
+    case 'fiche_paie':
+      return `Salaire net ${etudiant.salaire_alternance} € par mois`
   }
 }
 

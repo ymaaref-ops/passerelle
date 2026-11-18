@@ -1,13 +1,18 @@
-import { AlertTriangle, CheckCircle2, CircleDashed } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, CircleDashed, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export type StatutDocumentUI = 'manquant' | 'analyse' | 'verifie' | 'probleme'
+export type StatutDocumentUI = 'manquant' | 'pret' | 'analyse' | 'verifie' | 'probleme'
 
 const PASTILLES = {
   manquant: {
     label: 'Manquant',
     icon: CircleDashed,
     className: 'bg-muted text-muted-foreground',
+  },
+  pret: {
+    label: 'Prêt à envoyer',
+    icon: Clock,
+    className: 'bg-step-blue-soft text-step-blue',
   },
   verifie: {
     label: 'Vérifié',

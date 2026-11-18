@@ -2,93 +2,119 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { AlertTriangle, ArrowRight, CheckCircle2, Loader2, Send, ShieldCheck } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
-import { ControleCroise } from '@/components/documents/controle-croise'
+import { CameraDialog } from '@/components/documents/camera-dialog'
 import { DocumentCard } from '@/components/documents/document-card'
 import type { StatutDocumentUI } from '@/components/documents/statut-pastille'
-import {
-  DOCUMENTS_REQUIS,
-  DUREE_ANALYSE_MS,
-  extraitDocument,
-  getControles,
-  verifierFichier,
-  type DocumentRequis,
-} from '@/lib/documents-demo'
+import { etudiantCourant } from '@/lib/data'
+import { documentsPour, verifierFichier, type DefinitionDocument, type DocumentRequis } from '@/lib/documents-demo'
+import { deposerDocuments, lireEtatEtudiant, type DocumentN8n } from '@/lib/n8n'
+import { lireSituation, marquerDocumentsValides, type Situation } from '@/lib/session'
 import { cn } from '@/lib/utils'
 
-interface EtatDocument {
-  statut: StatutDocumentUI
-  nomFichier: string | null
-  message: string | null
-  /** Nombre de dépôts valides, pour savoir si l'avis a déjà été remplacé. */
-  valides: number
+/** Type de document dans l'interface → type renvoyé par la lecture IA (workflow 1). */
+const TYPE_N8N: Record<DocumentRequis, string> = {
+  identite: 'piece_identite',
+  bail: 'bail',
+  certificat_scolarite: 'certificat_scolarite',
+  avis_imposition: 'avis_imposition',
+  fiche_paie: 'fiche_paie',
 }
 
-const ETAT_INITIAL: Record<DocumentRequis, EtatDocument> = {
-  identite: { statut: 'manquant', nomFichier: null, message: null, valides: 0 },
-  bail: { statut: 'manquant', nomFichier: null, message: null, valides: 0 },
-  certificat_scolarite: { statut: 'manquant', nomFichier: null, message: null, valides: 0 },
-  avis_imposition: { statut: 'manquant', nomFichier: null, message: null, valides: 0 },
+/** Temps maximum d'attente de la lecture des documents. */
+const ATTENTE_MAX_MS = 4 * 60 * 1000
+const INTERVALLE_MS = 4000
+
+type Phase = 'saisie' | 'analyse' | 'resultat'
+
+const VIDE: Record<DocumentRequis, File | null> = {
+  identite: null,
+  bail: null,
+  certificat_scolarite: null,
+  avis_imposition: null,
+  fiche_paie: null,
 }
 
-// Délais cumulés (ms) avant que chaque vérification du contrôle croisé soit résolue.
-const DELAIS_CONTROLES = [1100, 2200, 3700]
+function texte(v: unknown): string {
+  return v === null || v === undefined || v === '' ? '?' : String(v)
+}
+
+/** Résumé en une ligne de ce que l'IA a lu sur le document. */
+function extraitLu(type: DocumentRequis, c: Record<string, unknown>): string {
+  switch (type) {
+    case 'identite':
+      return `${texte(c.prenom)} ${texte(c.nom)} · né(e) le ${texte(c.date_naissance)}`
+    case 'bail':
+      return `${texte(c.adresse_logement)} · loyer ${texte(c.loyer_hors_charges)} € + ${texte(c.charges)} € de charges`
+    case 'certificat_scolarite':
+      return `${texte(c.etablissement)} · année ${texte(c.annee_universitaire)}`
+    case 'avis_imposition':
+      return `Avis ${texte(c.annee_avis)} sur les revenus ${texte(c.annee_revenus)} · ${texte(c.declarants)}`
+    case 'fiche_paie':
+      return `${texte(c.employeur)} · ${texte(c.periode)} · net ${texte(c.net_a_payer)} €`
+  }
+}
 
 export function DocumentsWorkspace() {
-  const [etats, setEtats] = useState(ETAT_INITIAL)
-  const [controlesResolus, setControlesResolus] = useState(0)
-  const timers = useRef<number[]>([])
+  const [fichiers, setFichiers] = useState(VIDE)
+  const [erreursFichier, setErreursFichier] = useState<Partial<Record<DocumentRequis, string>>>({})
+  const router = useRouter()
+  const [situation, setSituation] = useState<Situation | null>(null)
+  const [accord, setAccord] = useState(false)
+  const [phase, setPhase] = useState<Phase>('saisie')
+  const [erreur, setErreur] = useState<string | null>(null)
+  const [lus, setLus] = useState<DocumentN8n[]>([])
+  const [cameraPour, setCameraPour] = useState<DocumentRequis | null>(null)
   const inputFichier = useRef<HTMLInputElement>(null)
   const inputPhoto = useRef<HTMLInputElement>(null)
   const cible = useRef<DocumentRequis | null>(null)
-  const sectionControle = useRef<HTMLElement>(null)
+  const sondage = useRef<number | null>(null)
 
-  useEffect(() => {
-    const enCours = timers.current
-    return () => enCours.forEach((id) => window.clearTimeout(id))
+  useEffect(() => () => {
+    if (sondage.current) window.clearTimeout(sondage.current)
   }, [])
 
-  const tousAnalyses = DOCUMENTS_REQUIS.every((d) => etats[d.type].statut === 'verifie')
-  const avisValides = etats.avis_imposition.valides
-  const controles = getControles(avisValides)
-  const controleFini = tousAnalyses && controlesResolus >= controles.length
-  const controleEchoue = controleFini ? controles.find((c) => !c.ok) : undefined
+  // Les documents demandés dépendent de la situation : sans elle, on repasse par l'étape Situation.
+  useEffect(() => {
+    const s = lireSituation()
+    if (s) setSituation(s)
+    else router.replace('/situation')
+  }, [router])
+
+  const DOCUMENTS_REQUIS: DefinitionDocument[] = situation ? documentsPour(situation) : []
+
+  // Document lu par l'IA pour chaque type attendu.
+  const parType = (type: DocumentRequis) => lus.find((d) => d.type === TYPE_N8N[type])
+  const bloquantes = (d?: DocumentN8n) => (d?.anomalies ?? []).filter((a) => a.gravite === 'bloquante')
+
+  const tousDeposes = DOCUMENTS_REQUIS.every((d) => fichiers[d.type])
+  const peutEnvoyer = situation !== null && tousDeposes && accord && phase === 'saisie'
+
+  const dossierComplet =
+    phase === 'resultat' &&
+    DOCUMENTS_REQUIS.length > 0 &&
+    DOCUMENTS_REQUIS.every((d) => {
+      const lu = parType(d.type)
+      return lu && lu.statut !== 'rejete' && bloquantes(lu).length === 0
+    })
 
   useEffect(() => {
-    if (!tousAnalyses) return
-    const ids = DELAIS_CONTROLES.map((delai, i) =>
-      window.setTimeout(() => setControlesResolus(i + 1), delai),
-    )
-    return () => ids.forEach((id) => window.clearTimeout(id))
-  }, [tousAnalyses, avisValides])
+    marquerDocumentsValides(dossierComplet)
+  }, [dossierComplet])
 
-  useEffect(() => {
-    if (!tousAnalyses) return
-    const reduit = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    sectionControle.current?.scrollIntoView({ behavior: reduit ? 'auto' : 'smooth', block: 'center' })
-  }, [tousAnalyses, controleEchoue])
-
-  function envoyer(type: DocumentRequis, fichier: File) {
-    if (etats[type].statut === 'analyse') return
-    setControlesResolus(0)
-    setEtats((prev) => ({
-      ...prev,
-      [type]: { ...prev[type], statut: 'analyse', nomFichier: fichier.name, message: null },
-    }))
-    const id = window.setTimeout(() => {
-      const erreur = verifierFichier(fichier)
-      setEtats((prev) => ({
-        ...prev,
-        [type]: {
-          ...prev[type],
-          statut: erreur ? 'probleme' : 'verifie',
-          message: erreur,
-          valides: erreur ? prev[type].valides : prev[type].valides + 1,
-        },
-      }))
-    }, DUREE_ANALYSE_MS)
-    timers.current.push(id)
+  function ajouter(type: DocumentRequis, fichier: File) {
+    if (phase === 'analyse') return
+    const probleme = verifierFichier(fichier)
+    setErreursFichier((prev) => ({ ...prev, [type]: probleme ?? undefined }))
+    if (probleme) return
+    setFichiers((prev) => ({ ...prev, [type]: fichier }))
+    // Un document changé : il faut renvoyer le dossier pour qu'il soit relu.
+    if (phase === 'resultat') {
+      setPhase('saisie')
+      setLus([])
+    }
   }
 
   function choisirFichier(type: DocumentRequis) {
@@ -98,6 +124,11 @@ export function DocumentsWorkspace() {
 
   function prendrePhoto(type: DocumentRequis) {
     cible.current = type
+    setCameraPour(type)
+  }
+
+  function cameraIndisponible() {
+    setCameraPour(null)
     inputPhoto.current?.click()
   }
 
@@ -105,26 +136,97 @@ export function DocumentsWorkspace() {
     const fichier = e.target.files?.[0]
     const type = cible.current
     e.target.value = ''
-    if (fichier && type) envoyer(type, fichier)
+    if (fichier && type) ajouter(type, fichier)
   }
 
-  function affichage(type: DocumentRequis) {
-    const etat = etats[type]
-    const echec = controleEchoue?.document === type ? controleEchoue : undefined
-    if (echec) {
+  async function envoyer() {
+    setErreur(null)
+    setPhase('analyse')
+    setLus([])
+    try {
+      const donnees = new FormData()
+      donnees.append('consentement', 'true')
+      donnees.append('prenom', etudiantCourant.prenom)
+      donnees.append('nom', etudiantCourant.nom)
+      donnees.append('aides', 'apl')
+      donnees.append('ressources_12_mois', String(situation?.ressources ?? 0))
+      if (situation?.bourse === 'oui' || situation?.bourse === 'non') {
+        donnees.append('boursier', situation.bourse === 'oui' ? 'true' : 'false')
+      }
+      for (const d of DOCUMENTS_REQUIS) {
+        const f = fichiers[d.type]
+        if (f) donnees.append('photo', f, f.name)
+      }
+      const etudiantId = await deposerDocuments(donnees)
+      attendreLecture(etudiantId, Date.now())
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : "Tes documents n'ont pas pu être envoyés.")
+      setPhase('saisie')
+    }
+  }
+
+  // Interroge n8n jusqu'à ce que les documents soient lus et le contrôle croisé fait.
+  function attendreLecture(etudiantId: string, debut: number) {
+    sondage.current = window.setTimeout(async () => {
+      try {
+        const etat = await lireEtatEtudiant(etudiantId)
+        const documents = etat.documents ?? []
+        const controleFait =
+          documents.length > 0 && documents.every((d) => d.statut === 'verifie' || d.statut === 'rejete')
+        if (controleFait || (etat.demarches?.length ?? 0) > 0) {
+          setLus(documents)
+          setPhase('resultat')
+          return
+        }
+      } catch {
+        // On réessaie au prochain passage.
+      }
+      if (Date.now() - debut > ATTENTE_MAX_MS) {
+        setErreur("La lecture de tes documents prend trop de temps. Réessaie dans un instant.")
+        setPhase('saisie')
+        return
+      }
+      attendreLecture(etudiantId, debut)
+    }, INTERVALLE_MS)
+  }
+
+  function affichage(type: DocumentRequis): {
+    statut: StatutDocumentUI
+    extrait: string
+    probleme: { message: string; detail?: string } | null
+  } {
+    const erreurFichier = erreursFichier[type]
+    if (erreurFichier) return { statut: 'probleme', extrait: '', probleme: { message: erreurFichier } }
+    if (!fichiers[type]) return { statut: 'manquant', extrait: '', probleme: null }
+    if (phase === 'analyse') return { statut: 'analyse', extrait: '', probleme: null }
+    if (phase === 'saisie') return { statut: 'pret', extrait: '', probleme: null }
+
+    const lu = parType(type)
+    if (!lu) {
       return {
-        statut: 'probleme' as const,
-        probleme: { message: echec.erreur ?? 'Problème détecté', detail: echec.detail },
+        statut: 'probleme',
+        extrait: '',
+        probleme: {
+          message: "On n'a pas reconnu ce document",
+          detail: 'Vérifie que c’est le bon document et que la photo est nette, puis remplace-le.',
+        },
       }
     }
-    return {
-      statut: etat.statut,
-      probleme: etat.message ? { message: etat.message } : null,
+    const bloque = bloquantes(lu)
+    if (lu.statut === 'rejete' || bloque.length > 0) {
+      return {
+        statut: 'probleme',
+        extrait: '',
+        probleme: { message: bloque[0]?.message ?? 'Ce document pose problème.', detail: bloque[1]?.message },
+      }
     }
+    return { statut: 'verifie', extrait: extraitLu(type, lu.champs_extraits ?? {}), probleme: null }
   }
 
   const nbVerifies = DOCUMENTS_REQUIS.filter((d) => affichage(d.type).statut === 'verifie').length
-  const pluriel = nbVerifies > 1 ? 's' : ''
+  const nbDeposes = DOCUMENTS_REQUIS.filter((d) => fichiers[d.type]).length
+  const pluriel = (n: number) => (n > 1 ? 's' : '')
+  const aVerifier = lus.flatMap((d) => (d.anomalies ?? []).filter((a) => a.gravite === 'a_verifier'))
 
   return (
     <>
@@ -134,80 +236,182 @@ export function DocumentsWorkspace() {
       >
         <div className="min-w-0 flex-1">
           <p aria-live="polite" className="text-xl font-bold text-foreground">
-            {nbVerifies} document{pluriel} sur {DOCUMENTS_REQUIS.length} vérifié{pluriel}
+            {phase === 'saisie'
+              ? `${nbDeposes} document${pluriel(nbDeposes)} sur ${DOCUMENTS_REQUIS.length} ajouté${pluriel(nbDeposes)}`
+              : phase === 'analyse'
+                ? 'Lecture de tes documents en cours…'
+                : `${nbVerifies} document${pluriel(nbVerifies)} sur ${DOCUMENTS_REQUIS.length} vérifié${pluriel(nbVerifies)}`}
           </p>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {tousAnalyses && !controleFini
-              ? 'Contrôle croisé en cours…'
+            {phase === 'analyse'
+              ? 'Notre IA lit chaque document et les compare entre eux. Ça prend environ une minute.'
               : 'Dépose chaque pièce pour que nos agents puissent préparer tes dossiers.'}
           </p>
-          <ul className="mt-3 flex gap-2" aria-hidden="true">
-            {DOCUMENTS_REQUIS.map((d) => {
-              const { statut } = affichage(d.type)
-              return (
-                <li
-                  key={d.type}
-                  className={cn(
-                    'h-2 flex-1 rounded-full transition-colors duration-500',
-                    statut === 'verifie' && 'bg-success',
-                    statut === 'probleme' && 'bg-destructive',
-                    statut === 'analyse' && 'bg-step-blue motion-safe:animate-pulse',
-                    statut === 'manquant' && 'bg-step-blue-border',
-                  )}
-                />
-              )
-            })}
-          </ul>
         </div>
-        <Link
-          href="/aides"
-          className={cn(
-            buttonVariants({ size: 'lg' }),
-            'h-12 shrink-0 gap-2 rounded-2xl px-6 text-base font-semibold',
+        <div className="flex shrink-0 flex-col gap-1.5 sm:items-end">
+          {dossierComplet ? (
+            <Link
+              href="/aides"
+              className={cn(buttonVariants({ size: 'lg' }), 'h-12 gap-2 rounded-2xl px-6 text-base font-semibold')}
+            >
+              Voir mes aides
+              <ArrowRight className="size-5" aria-hidden="true" />
+            </Link>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled
+                aria-describedby="aide-voir-aides"
+                className={cn(
+                  buttonVariants({ size: 'lg' }),
+                  'h-12 cursor-not-allowed gap-2 rounded-2xl bg-muted px-6 text-base font-semibold text-muted-foreground',
+                )}
+              >
+                Voir mes aides
+                <ArrowRight className="size-5" aria-hidden="true" />
+              </button>
+              <p id="aide-voir-aides" className="text-sm text-muted-foreground sm:text-right">
+                {phase === 'resultat'
+                  ? 'Remplace le document signalé, puis renvoie ton dossier.'
+                  : phase === 'analyse'
+                    ? 'Vérification en cours…'
+                    : `Envoie tes ${DOCUMENTS_REQUIS.length} documents pour continuer.`}
+              </p>
+            </>
           )}
-        >
-          Voir mes aides
-          <ArrowRight className="size-5" aria-hidden="true" />
-        </Link>
+        </div>
       </section>
 
       <ul className="mt-6 grid gap-4 md:grid-cols-2">
         {DOCUMENTS_REQUIS.map((definition) => {
-          const etat = etats[definition.type]
-          const { statut, probleme } = affichage(definition.type)
+          const { statut, extrait, probleme } = affichage(definition.type)
           return (
             <DocumentCard
               key={definition.type}
               definition={definition}
               statut={statut}
-              nomFichier={etat.nomFichier}
-              extrait={extraitDocument(definition.type, avisValides)}
+              nomFichier={fichiers[definition.type]?.name ?? null}
+              extrait={extrait}
               probleme={probleme}
               onChoisir={() => choisirFichier(definition.type)}
               onPhoto={() => prendrePhoto(definition.type)}
-              onDepot={(fichier) => envoyer(definition.type, fichier)}
+              onDepot={(fichier) => ajouter(definition.type, fichier)}
             />
           )
         })}
       </ul>
 
-      {tousAnalyses && (
-        <div className="mt-6">
-          <ControleCroise
-            ref={sectionControle}
-            controles={controles}
-            resolus={controlesResolus}
-            onRemplacer={(controle) => {
-              if (controle.document) choisirFichier(controle.document)
-            }}
-          />
-        </div>
+      {phase === 'resultat' && (
+        <section
+          aria-labelledby="titre-controle"
+          className={cn(
+            'mt-6 rounded-3xl border-2 p-5 sm:p-6',
+            dossierComplet ? 'border-success/50 bg-success-soft' : 'border-destructive bg-danger-soft',
+          )}
+        >
+          <h2 id="titre-controle" className="flex items-center gap-2 text-xl font-bold text-foreground">
+            {dossierComplet ? (
+              <ShieldCheck className="size-6 text-success" aria-hidden="true" />
+            ) : (
+              <AlertTriangle className="size-6 text-danger" aria-hidden="true" />
+            )}
+            Contrôle croisé
+          </h2>
+          <p className="mt-1 text-muted-foreground">
+            {dossierComplet
+              ? 'Tes documents sont cohérents entre eux : tu peux voir tes aides.'
+              : 'Un document pose problème. Corrige-le puis renvoie ton dossier.'}
+          </p>
+          {aVerifier.length > 0 && (
+            <ul className="mt-3 flex flex-col gap-1 text-sm">
+              {aVerifier.map((a, i) => (
+                <li key={i} className="flex items-start gap-2 text-foreground">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-step-orange" aria-hidden="true" />
+                  {a.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
+
+      {phase !== 'resultat' && (
+        <section
+          aria-labelledby="titre-envoi"
+          className="mt-6 flex flex-col gap-5 rounded-3xl border border-border bg-card p-5 sm:p-6"
+        >
+          <h2 id="titre-envoi" className="text-xl font-bold text-foreground">
+            Envoyer mes documents
+          </h2>
+
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={accord}
+              onChange={(e) => setAccord(e.target.checked)}
+              disabled={phase === 'analyse'}
+              className="mt-1 size-5 shrink-0 accent-step-blue"
+            />
+            <span className="leading-relaxed text-foreground">
+              J&apos;accepte que Passerelle analyse mes documents. Les photos sont gardées 30 jours au
+              maximum, dans un espace privé.
+            </span>
+          </label>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={envoyer}
+              disabled={!peutEnvoyer}
+              className={cn(
+                buttonVariants({ size: 'lg' }),
+                'h-12 gap-2 rounded-2xl px-6 text-base font-semibold disabled:cursor-not-allowed',
+              )}
+            >
+              {phase === 'analyse' ? (
+                <Loader2 className="size-5 motion-safe:animate-spin" aria-hidden="true" />
+              ) : (
+                <Send className="size-5" aria-hidden="true" />
+              )}
+              {phase === 'analyse' ? 'Vérification en cours…' : 'Envoyer mes documents'}
+            </button>
+            {!peutEnvoyer && phase === 'saisie' && (
+              <p className="text-sm text-muted-foreground">
+                {!tousDeposes
+                  ? `Ajoute tes ${DOCUMENTS_REQUIS.length} documents.`
+                  : 'Coche la case pour accepter l’analyse.'}
+              </p>
+            )}
+          </div>
+          {erreur && (
+            <p role="alert" className="text-sm font-medium text-danger">
+              {erreur}
+            </p>
+          )}
+        </section>
+      )}
+
+      {dossierComplet && (
+        <p className="mt-4 flex items-center gap-2 font-semibold text-success">
+          <CheckCircle2 className="size-5" aria-hidden="true" />
+          Tes {DOCUMENTS_REQUIS.length} documents sont vérifiés.
+        </p>
+      )}
+
+      <CameraDialog
+        titre={cameraPour ? (DOCUMENTS_REQUIS.find((d) => d.type === cameraPour)?.titre ?? null) : null}
+        onPhoto={(fichier) => {
+          if (cameraPour) ajouter(cameraPour, fichier)
+        }}
+        onFermer={() => setCameraPour(null)}
+        onIndisponible={cameraIndisponible}
+      />
 
       <input
         ref={inputFichier}
         type="file"
-        accept="image/*,application/pdf"
+        accept="image/*"
         className="sr-only"
         tabIndex={-1}
         aria-hidden="true"

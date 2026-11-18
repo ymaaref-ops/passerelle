@@ -8,6 +8,7 @@ import {
   Home,
   IdCard,
   Loader2,
+  Receipt,
   RefreshCw,
   ScanText,
   UploadCloud,
@@ -23,6 +24,7 @@ const ICONES: Record<DocumentRequis, typeof FileText> = {
   bail: Home,
   certificat_scolarite: GraduationCap,
   avis_imposition: FileText,
+  fiche_paie: Receipt,
 }
 
 interface DocumentCardProps {
@@ -50,7 +52,7 @@ export function DocumentCard({
   const Icon = ICONES[definition.type]
   const bleu = STEP_COLORS.blue
   const enAnalyse = statut === 'analyse'
-  const depose = statut === 'verifie' || statut === 'probleme'
+  const depose = statut === 'pret' || statut === 'verifie' || statut === 'probleme'
 
   return (
     <li
@@ -117,14 +119,14 @@ export function DocumentCard({
           <div className="flex flex-col items-center gap-3 py-2">
             <UploadCloud className="size-8 text-step-blue" aria-hidden="true" />
             <p className="text-sm text-muted-foreground">
-              <span className="hidden md:inline">Glisse ton fichier ici, ou</span>
+              <span className="hidden md:inline">Glisse ton fichier ici, prends-le en photo, ou</span>
               <span className="md:hidden">Ajoute ton document :</span>
             </p>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <Button
                 type="button"
                 onClick={onPhoto}
-                className={cn('h-11 rounded-xl px-5 text-base font-semibold md:hidden', bleu.solid)}
+                className={cn('h-11 rounded-xl px-5 text-base font-semibold', bleu.solid)}
               >
                 <Camera aria-hidden="true" />
                 Prendre en photo

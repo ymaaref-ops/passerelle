@@ -21,13 +21,13 @@ export default function HomePage() {
             Ça prend quelques minutes, et tu gardes la main sur chaque envoi.
           </p>
           <Link
-            href="/documents"
+            href="/demarrer"
             className={cn(
               buttonVariants({ variant: 'secondary', size: 'lg' }),
               'mt-6 h-14 gap-2 rounded-2xl px-7 text-base font-semibold',
             )}
           >
-            Commencer
+            Démarrer ma session
             <ArrowRight className="size-5" aria-hidden="true" />
           </Link>
         </div>

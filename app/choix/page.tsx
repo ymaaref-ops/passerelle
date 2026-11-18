@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { ChoixForm } from '@/components/choix/choix-form'
 import { etudiantCourant } from '@/lib/data'
 import { trierAides } from '@/lib/eligibilite'
+import { GardeDocuments } from '@/components/garde-documents'
 import { STEP_COLORS } from '@/lib/step-colors'
 import { cn } from '@/lib/utils'
 
@@ -15,9 +16,10 @@ export default function ChoixPage() {
   const { droit, peutEtre } = trierAides(etudiantCourant)
 
   return (
+    <GardeDocuments>
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:py-12">
       <header className="mb-8 max-w-2xl">
-        <p className={cn('text-sm font-semibold', STEP_COLORS.green.text)}>Étape 3 sur 5</p>
+        <p className={cn('text-sm font-semibold', STEP_COLORS.green.text)}>Étape 4 sur 6</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
           Choisis tes démarches
         </h1>
@@ -29,5 +31,6 @@ export default function ChoixPage() {
 
       <ChoixForm droit={droit} peutEtre={peutEtre} />
     </div>
+    </GardeDocuments>
   )
 }

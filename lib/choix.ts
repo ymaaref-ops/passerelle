@@ -6,8 +6,8 @@ export const MONTANT_MAX = 15000
 export const MONTANT_PAR_DEFAUT = 8000
 export const MONTANT_PAS = 500
 
-// APL + les trois prêts bancaires : 4 agents en parallèle par défaut.
-export const SELECTION_PAR_DEFAUT = ['apl', 'pret-lbp', 'pret-sg', 'pret-cic']
+// Rien n'est coché par défaut : c'est l'étudiant qui choisit lui-même ses aides.
+export const SELECTION_PAR_DEFAUT: string[] = []
 
 export function estUnPret(aide: Aide): boolean {
   return aide.id.startsWith('pret-')
@@ -51,24 +51,22 @@ export function construireRecapitulatif(
   const montant = formaterEuros(montantPret)
 
   if (selection.has('apl')) {
-    lignes.push({ id: 'apl', texte: 'simuler ton APL sur mesdroitssociaux.gouv.fr' })
+    lignes.push({ id: 'apl', texte: 'simuler ton APL sur caf.fr' })
     agents += 1
   }
 
-  const banques = BANQUES.filter((b) => selection.has(b.id))
-  if (banques.length > 0) {
-    lignes.push({
-      id: 'prets',
-      texte: `comparer les offres de prêt chez ${listeFrancaise(banques.map((b) => b.nom))} pour`,
-      montant,
-    })
-    agents += banques.length
+  if (selection.has('prime-activite')) {
+    lignes.push({ id: 'prime-activite', texte: "simuler ta prime d'activité sur caf.fr" })
+    agents += 1
   }
 
-  if (selection.has('pret-etat')) {
+  // Un seul agent compare toutes les banques cochées (et le prêt garanti par l'État).
+  const banques = BANQUES.filter((b) => selection.has(b.id))
+  if (banques.length > 0 || selection.has('pret-etat')) {
+    const noms = banques.length > 0 ? banques.map((b) => b.nom) : BANQUES.map((b) => b.nom)
     lignes.push({
-      id: 'pret-etat',
-      texte: "étudier le prêt garanti par l'État auprès des banques partenaires pour",
+      id: 'prets',
+      texte: `comparer les offres de prêt chez ${listeFrancaise(noms)} pour`,
       montant,
     })
     agents += 1

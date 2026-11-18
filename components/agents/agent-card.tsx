@@ -1,25 +1,26 @@
 'use client'
 
-import { CircleCheck, Eye, Globe, Home, Landmark } from 'lucide-react'
+import { BriefcaseBusiness, CircleCheck, Globe, Home, KeyRound, Landmark, ShieldCheck } from 'lucide-react'
 import type { AgentId, AgentStatut } from '@/lib/agents'
 import { cn } from '@/lib/utils'
+import { DemandeAgent } from './demande-agent'
 import { FormulaireAgent } from './formulaire-agent'
 import { STYLES_STATUT, StatutBadge } from './statut-badge'
 
 const ICONES: Record<AgentId, typeof Home> = {
   apl: Home,
-  'banque-postale': Landmark,
-  'societe-generale': Landmark,
-  cic: Landmark,
+  'prime-activite': BriefcaseBusiness,
+  prets: Landmark,
+  visale: ShieldCheck,
+  'mobili-jeune': KeyRound,
 }
 
 interface AgentCardProps {
   agent: AgentStatut
-  onVoirEnDirect: () => void
   onEnvoyer: (reponse: string) => Promise<void>
 }
 
-export function AgentCard({ agent, onVoirEnDirect, onEnvoyer }: AgentCardProps) {
+export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
   const Icone = ICONES[agent.id]
   const style = STYLES_STATUT[agent.statut]
   const idTitre = `titre-${agent.id}`
@@ -45,12 +46,21 @@ export function AgentCard({ agent, onVoirEnDirect, onEnvoyer }: AgentCardProps) 
             <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
               <Globe className="size-3.5 shrink-0" aria-hidden="true" />
               <span className="truncate">{agent.site}</span>
+              {agent.bientot && (
+                <span className="ml-1 shrink-0 rounded-full border border-border px-2 py-0.5 text-xs font-medium">
+                  Avec toi
+                </span>
+              )}
             </p>
           </div>
         </div>
         <StatutBadge statut={agent.statut} />
       </header>
 
+      {agent.bientot ? (
+        <DemandeAgent aide={agent.id === 'visale' ? 'visale' : 'mobili_jeune'} />
+      ) : (
+      <>
       <div className="flex min-h-20 flex-col justify-center gap-2">
         {agent.statut === 'besoin' && <FormulaireAgent key={agent.id} agent={agent} onEnvoyer={onEnvoyer} />}
 
@@ -98,14 +108,8 @@ export function AgentCard({ agent, onVoirEnDirect, onEnvoyer }: AgentCardProps) 
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onVoirEnDirect}
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border bg-card px-5 text-sm font-semibold text-primary outline-none transition-colors hover:bg-primary-soft focus-visible:ring-4 focus-visible:ring-ring/30"
-      >
-        <Eye className="size-4" aria-hidden="true" />
-        Voir l&apos;agent en direct
-      </button>
+      </>
+      )}
     </article>
   )
 }
