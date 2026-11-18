@@ -30,7 +30,7 @@ export interface AgentStatut {
   resultat?: string
   /** Lien vers la session de l'agent sur H, quand il existe. */
   lienDirect?: string
-  /** Agent prêt mais pas encore activé : il ne se lance pas. */
+  /** Agent de demande piloté par l'étudiant depuis sa carte (connexion à son compte). */
   bientot?: boolean
 }
 
@@ -90,7 +90,7 @@ const AGENTS: {
   },
 ]
 
-const ETAPE_BIENTOT = 'Agent prêt : il préparera ta demande sur ton compte Action Logement, bientôt disponible.'
+const ETAPE_BIENTOT = "Tu lances l'agent quand tu veux : il prépare ta demande avec toi."
 
 function formaterMontant(valeur: number | string | null | undefined, suffixe = ' €/mois'): string | null {
   const nombre = Number(valeur)

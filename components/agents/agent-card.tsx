@@ -3,6 +3,7 @@
 import { BriefcaseBusiness, CircleCheck, Globe, Home, KeyRound, Landmark, ShieldCheck } from 'lucide-react'
 import type { AgentId, AgentStatut } from '@/lib/agents'
 import { cn } from '@/lib/utils'
+import { DemandeAgent } from './demande-agent'
 import { FormulaireAgent } from './formulaire-agent'
 import { STYLES_STATUT, StatutBadge } from './statut-badge'
 
@@ -47,7 +48,7 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
               <span className="truncate">{agent.site}</span>
               {agent.bientot && (
                 <span className="ml-1 shrink-0 rounded-full border border-border px-2 py-0.5 text-xs font-medium">
-                  Bientôt
+                  Avec toi
                 </span>
               )}
             </p>
@@ -56,6 +57,10 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
         <StatutBadge statut={agent.statut} />
       </header>
 
+      {agent.bientot ? (
+        <DemandeAgent aide={agent.id === 'visale' ? 'visale' : 'mobili_jeune'} />
+      ) : (
+      <>
       <div className="flex min-h-20 flex-col justify-center gap-2">
         {agent.statut === 'besoin' && <FormulaireAgent key={agent.id} agent={agent} onEnvoyer={onEnvoyer} />}
 
@@ -103,6 +108,8 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
         </div>
       </div>
 
+      </>
+      )}
     </article>
   )
 }
