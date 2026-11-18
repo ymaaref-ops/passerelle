@@ -34,8 +34,15 @@ export function setEtudiantId(id: string): void {
 /** Aides de l'interface qui ont une démarche automatisée côté n8n, avec leur code dans Supabase. */
 export const CODES_N8N: Record<string, string> = {
   apl: 'apl',
+  'prime-activite': 'prime_activite',
+  // Tous les prêts passent par l'agent comparateur-pret (une seule démarche).
   'pret-etat': 'pret_garanti',
+  'pret-lbp': 'pret_garanti',
+  'pret-sg': 'pret_garanti',
+  'pret-cic': 'pret_garanti',
 }
+
+const BANQUES = ['pret-lbp', 'pret-sg', 'pret-cic']
 
 export interface DemarcheN8n {
   id: string
@@ -51,6 +58,7 @@ export interface DemarcheN8n {
     lien_session_simulateur?: string | null
     etape_bloquante?: string | null
     simulation?: { montant_mensuel?: number | null; remarques?: string } | null
+    reponse?: { resultats?: unknown[]; [cle: string]: unknown } | null
   } | null
 }
 
@@ -61,14 +69,22 @@ export interface EtatN8n {
 }
 
 /** Envoie les aides cochées au workflow 2, qui lance les agents H. Renvoie le nombre d'aides envoyées. */
-export async function lancerDemarches(selection: Iterable<string>): Promise<number> {
-  const aides = [...selection].map((id) => CODES_N8N[id]).filter(Boolean)
+export async function lancerDemarches(selection: Iterable<string>, montantPret?: number): Promise<number> {
+  const choisies = [...selection]
+  const aides = [...new Set(choisies.map((id) => CODES_N8N[id]).filter(Boolean))]
   if (aides.length === 0) return 0
+  const banques = choisies.filter((id) => BANQUES.includes(id))
 
   const reponse = await fetch(`${N8N_URL}/passerelle/lancer`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ etudiant_id: getEtudiantId(), aides: aides.join(','), consentement: 'true' }),
+    body: JSON.stringify({
+      etudiant_id: getEtudiantId(),
+      aides: aides.join(','),
+      banques: banques.join(','),
+      montant: montantPret ?? null,
+      consentement: 'true',
+    }),
   })
   if (!reponse.ok) throw new Error(`Passerelle n'a pas pu lancer les agents (erreur ${reponse.status}).`)
   return aides.length

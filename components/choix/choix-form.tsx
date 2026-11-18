@@ -96,7 +96,7 @@ export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial }: Ch
     setEnvoi(true)
     setErreur(null)
     try {
-      await lancerDemarches(selection)
+      await lancerDemarches(selection, unPretEstCoche ? montant : undefined)
       router.push(`/agents?${parametres.toString()}`)
     } catch (e) {
       setErreur(e instanceof Error ? e.message : "Les agents n'ont pas pu être lancés.")

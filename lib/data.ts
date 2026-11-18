@@ -100,7 +100,7 @@ export const aides: Aide[] = [
     lien_officiel: 'https://www.service-public.fr/particuliers/vosdroits/F2882',
     source: 'service-public.fr',
     date_verification: DATE_VERIFICATION,
-    niveau: 'information',
+    niveau: 'automatisee',
     regle_eligibilite: 'age >= 18 ET salaire_net_mensuel >= 1000',
   },
   {

@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleCheck, Globe, Home, Landmark } from 'lucide-react'
+import { BriefcaseBusiness, CircleCheck, Globe, Home, Landmark } from 'lucide-react'
 import type { AgentId, AgentStatut } from '@/lib/agents'
 import { cn } from '@/lib/utils'
 import { FormulaireAgent } from './formulaire-agent'
@@ -8,9 +8,8 @@ import { STYLES_STATUT, StatutBadge } from './statut-badge'
 
 const ICONES: Record<AgentId, typeof Home> = {
   apl: Home,
-  'banque-postale': Landmark,
-  'societe-generale': Landmark,
-  cic: Landmark,
+  'prime-activite': BriefcaseBusiness,
+  prets: Landmark,
 }
 
 interface AgentCardProps {
@@ -44,11 +43,6 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
             <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
               <Globe className="size-3.5 shrink-0" aria-hidden="true" />
               <span className="truncate">{agent.site}</span>
-              {agent.demo && (
-                <span className="ml-1 shrink-0 rounded-full border border-border px-2 py-0.5 text-xs font-medium">
-                  Démo
-                </span>
-              )}
             </p>
           </div>
         </div>

@@ -4,8 +4,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { ArrowRight } from 'lucide-react'
-import { envoyerReponseAgent, getStatutsAgents, type AgentId } from '@/lib/agents'
-import { statutsInitiaux } from '@/lib/agents-simulation'
+import { envoyerReponseAgent, getStatutsAgents, statutsInitiaux, type AgentId } from '@/lib/agents'
 import { STEP_COLORS } from '@/lib/step-colors'
 import { cn } from '@/lib/utils'
 import { AgentCard } from './agent-card'
@@ -16,9 +15,11 @@ const COULEUR = STEP_COLORS.green
 // Aide cochée sur la page Choix → agent affiché ici.
 const AGENT_PAR_AIDE: Record<string, AgentId> = {
   apl: 'apl',
-  'pret-lbp': 'banque-postale',
-  'pret-sg': 'societe-generale',
-  'pret-cic': 'cic',
+  'prime-activite': 'prime-activite',
+  'pret-lbp': 'prets',
+  'pret-sg': 'prets',
+  'pret-cic': 'prets',
+  'pret-etat': 'prets',
 }
 
 export function AgentsDashboard() {
