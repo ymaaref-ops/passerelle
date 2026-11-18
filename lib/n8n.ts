@@ -40,6 +40,9 @@ export const CODES_N8N: Record<string, string> = {
   'pret-lbp': 'pret_garanti',
   'pret-sg': 'pret_garanti',
   'pret-cic': 'pret_garanti',
+  // Démarches guidées pour l'instant (agents de demande pas encore activés).
+  visale: 'visale',
+  'mobili-jeune': 'mobili_jeune',
 }
 
 const BANQUES = ['pret-lbp', 'pret-sg', 'pret-cic']

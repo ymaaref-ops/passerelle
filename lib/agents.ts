@@ -1,6 +1,6 @@
 import { lireEtat, type DemarcheN8n } from '@/lib/n8n'
 
-export type AgentId = 'apl' | 'prime-activite' | 'prets'
+export type AgentId = 'apl' | 'prime-activite' | 'prets' | 'visale' | 'mobili-jeune'
 
 export type StatutAgent = 'attente' | 'en_cours' | 'besoin' | 'termine'
 
@@ -30,6 +30,8 @@ export interface AgentStatut {
   resultat?: string
   /** Lien vers la session de l'agent sur H, quand il existe. */
   lienDirect?: string
+  /** Agent prêt mais pas encore activé : il ne se lance pas. */
+  bientot?: boolean
 }
 
 /** Les agents H branchés, avec la démarche n8n qu'ils traitent. */
@@ -41,6 +43,8 @@ const AGENTS: {
   enCours: string
   /** Durée typique, pour estimer l'avancement affiché. */
   duree: number
+  /** Agent pas encore activé (demande sur un vrai compte, clé H de son auteur à ajouter). */
+  bientot?: boolean
 }[] = [
   {
     id: 'apl',
@@ -66,7 +70,27 @@ const AGENTS: {
     enCours: 'Les agents simulent ton prêt dans chaque banque en parallèle…',
     duree: 300_000,
   },
+  {
+    id: 'visale',
+    code: 'visale',
+    nom: 'Demande Visale',
+    site: 'visale.fr',
+    enCours: '',
+    duree: 0,
+    bientot: true,
+  },
+  {
+    id: 'mobili-jeune',
+    code: 'mobili_jeune',
+    nom: 'Demande Mobili-Jeune',
+    site: 'mobilijeune.actionlogement.fr',
+    enCours: '',
+    duree: 0,
+    bientot: true,
+  },
 ]
+
+const ETAPE_BIENTOT = 'Agent prêt : il préparera ta demande sur ton compte Action Logement, bientôt disponible.'
 
 function formaterMontant(valeur: number | string | null | undefined, suffixe = ' €/mois'): string | null {
   const nombre = Number(valeur)
@@ -98,6 +122,7 @@ function resumeResultat(code: string, d: DemarcheN8n): string {
 /** Traduit une démarche renvoyée par n8n en carte d'agent. */
 function agentDepuisN8n(a: (typeof AGENTS)[number], d: DemarcheN8n | undefined, maintenant: number): AgentStatut {
   const base = { id: a.id, nom: a.nom, site: a.site }
+  if (a.bientot) return { ...base, statut: 'attente', etape: ETAPE_BIENTOT, progression: 0, bientot: true }
   if (!d || !d.cochee || d.statut === 'proposee') {
     return { ...base, statut: 'attente', etape: 'En attente de démarrage…', progression: 0 }
   }
@@ -140,8 +165,9 @@ export function statutsInitiaux(): AgentStatut[] {
     nom: a.nom,
     site: a.site,
     statut: 'attente',
-    etape: 'En attente de démarrage…',
+    etape: a.bientot ? ETAPE_BIENTOT : 'En attente de démarrage…',
     progression: 0,
+    bientot: a.bientot,
   }))
 }
 
@@ -158,7 +184,7 @@ export async function getStatutsAgents(): Promise<AgentStatut[]> {
       ),
     )
   } catch {
-    return statutsInitiaux().map((s) => ({ ...s, etape: 'Connexion à Passerelle en cours…' }))
+    return statutsInitiaux().map((s) => (s.bientot ? s : { ...s, etape: 'Connexion à Passerelle en cours…' }))
   }
 }
 

@@ -20,6 +20,8 @@ const AGENT_PAR_AIDE: Record<string, AgentId> = {
   'pret-sg': 'prets',
   'pret-cic': 'prets',
   'pret-etat': 'prets',
+  visale: 'visale',
+  'mobili-jeune': 'mobili-jeune',
 }
 
 export function AgentsDashboard() {
@@ -33,14 +35,17 @@ export function AgentsDashboard() {
   const { data: tous = statutsInitiaux(), mutate } = useSWR('statuts-agents', getStatutsAgents, {
     fallbackData: statutsInitiaux(),
     // Toutes les 3 s : l'APL est lue sur n8n, inutile de l'interroger plus souvent.
-    refreshInterval: (dernier) => (dernier?.filter(garder).every((a) => a.statut === 'termine') ? 0 : 3000),
+    refreshInterval: (dernier) => (dernier?.filter(garder).filter((a) => !a.bientot).every((a) => a.statut === 'termine') ? 0 : 3000),
   })
   const agents = tous.filter(garder)
+  // Les agents pas encore activés ne comptent pas dans l'avancement.
+  const actifs = agents.filter((a) => !a.bientot)
 
-  const total = agents.length
-  const termines = agents.filter((a) => a.statut === 'termine').length
-  const toutTermine = termines === total
-  const progressionGlobale = total ? Math.round(agents.reduce((somme, a) => somme + a.progression, 0) / total) : 0
+  const total = actifs.length
+  const termines = actifs.filter((a) => a.statut === 'termine').length
+  const toutTermine = total > 0 && termines === total
+  const seulementBientot = total === 0 && agents.length > 0
+  const progressionGlobale = total ? Math.round(actifs.reduce((somme, a) => somme + a.progression, 0) / total) : 0
 
   async function envoyer(agentId: AgentId, reponse: string) {
     await envoyerReponseAgent(agentId, reponse)
@@ -55,7 +60,9 @@ export function AgentsDashboard() {
         <div className="max-w-2xl">
           <p className={cn('text-sm font-semibold', COULEUR.text)}>Étape 5 sur 6</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
-            {toutTermine
+            {seulementBientot
+              ? 'Tes demandes seront bientôt préparées'
+              : toutTermine
               ? total === 1
                 ? 'Ton agent a terminé'
                 : `Tes ${total} agents ont terminé`
@@ -64,7 +71,9 @@ export function AgentsDashboard() {
                 : `${total} agents travaillent en parallèle pour toi`}
           </h1>
           <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
-            {toutTermine
+            {seulementBientot
+              ? 'Ces agents arrivent bientôt sur Passerelle. En attendant, on te guide pas à pas.'
+              : toutTermine
               ? "Tout est prêt. Tu vas pouvoir vérifier chaque résultat avant l'envoi."
               : 'Reste sur cette page : un agent peut avoir besoin de toi à tout moment.'}
           </p>
