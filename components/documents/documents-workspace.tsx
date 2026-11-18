@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
+import { CameraDialog } from '@/components/documents/camera-dialog'
 import { ControleCroise } from '@/components/documents/controle-croise'
 import { DocumentCard } from '@/components/documents/document-card'
 import type { StatutDocumentUI } from '@/components/documents/statut-pastille'
@@ -39,6 +40,7 @@ const DELAIS_CONTROLES = [1100, 2200, 3700]
 export function DocumentsWorkspace() {
   const [etats, setEtats] = useState(ETAT_INITIAL)
   const [controlesResolus, setControlesResolus] = useState(0)
+  const [cameraPour, setCameraPour] = useState<DocumentRequis | null>(null)
   const timers = useRef<number[]>([])
   const inputFichier = useRef<HTMLInputElement>(null)
   const inputPhoto = useRef<HTMLInputElement>(null)
@@ -103,8 +105,15 @@ export function DocumentsWorkspace() {
     inputFichier.current?.click()
   }
 
+  // Ouvre la caméra de l'appareil (webcam sur ordinateur, caméra arrière sur téléphone).
   function prendrePhoto(type: DocumentRequis) {
     cible.current = type
+    setCameraPour(type)
+  }
+
+  // Caméra inaccessible (refusée ou absente) : appareil photo natif du téléphone, ou choix de fichier.
+  function cameraIndisponible() {
+    setCameraPour(null)
     inputPhoto.current?.click()
   }
 
@@ -236,6 +245,15 @@ export function DocumentsWorkspace() {
           />
         </div>
       )}
+
+      <CameraDialog
+        titre={cameraPour ? (DOCUMENTS_REQUIS.find((d) => d.type === cameraPour)?.titre ?? null) : null}
+        onPhoto={(fichier) => {
+          if (cameraPour) envoyer(cameraPour, fichier)
+        }}
+        onFermer={() => setCameraPour(null)}
+        onIndisponible={cameraIndisponible}
+      />
 
       <input
         ref={inputFichier}
