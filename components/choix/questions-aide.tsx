@@ -1,9 +1,10 @@
 'use client'
 
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList, FileCheck2 } from 'lucide-react'
 import {
   champVisible,
   erreurChamp,
+  valeurOcr,
   type Champ,
   type Contexte,
   type Reponses,
@@ -53,11 +54,14 @@ function Pastilles({
 function ChampQuestion({
   champ,
   valeur,
+  lue,
   afficherErreur,
   onChange,
 }: {
   champ: Champ
   valeur: Valeur | undefined
+  /** Valeur trouvée sur les documents (null si rien). */
+  lue: Valeur
   afficherErreur: boolean
   onChange: (v: Valeur) => void
 }) {
@@ -74,6 +78,20 @@ function ChampQuestion({
         )}
       </span>
       {champ.aide && <span className="text-sm text-muted-foreground">{champ.aide}</span>}
+      {lue !== null && (
+        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-step-green-soft px-2.5 py-0.5 text-xs font-semibold text-step-green">
+          <FileCheck2 className="size-3.5" aria-hidden="true" />
+          {valeur === lue
+            ? 'Rempli à partir de tes documents : vérifie et corrige si besoin'
+            : `Sur tes documents : ${
+                lue === true
+                  ? 'oui'
+                  : lue === false
+                    ? 'non'
+                    : (champ.options?.find((o) => o.valeur === lue)?.label ?? String(lue))
+              }`}
+        </span>
+      )}
     </>
   )
 
@@ -158,6 +176,7 @@ export function QuestionsAide({
             key={c.cle}
             champ={c}
             valeur={reponses[c.cle]}
+            lue={valeurOcr(c, contexte)}
             afficherErreur={afficherErreurs}
             onChange={(v) => onChange(c.cle, v)}
           />

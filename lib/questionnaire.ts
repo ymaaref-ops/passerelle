@@ -35,6 +35,8 @@ export interface Champ {
   /** Valeur proposée d'office (l'étudiant peut la changer). */
   defaut?: Valeur | ((ctx: Contexte, r: Reponses) => Valeur)
   obligatoire?: boolean
+  /** Valeur lue sur les documents : pré-remplit la question, qui reste affichée et modifiable. */
+  ocr?: (ctx: Contexte) => Valeur
   /** Format attendu pour un texte, et le message si ce n'est pas le cas. */
   motif?: { re: RegExp; message: string }
   visible?: (r: Reponses, ctx: Contexte) => boolean
@@ -81,19 +83,44 @@ const OUI_NON = (cle: string, label: string, defaut: boolean, extra: Partial<Cha
   ...extra,
 })
 
-/** Vrai si un des champs OCR a une valeur. */
-function connu(ctx: Contexte, ...cles: string[]): boolean {
-  return cles.some((c) => {
-    const v = ctx.ocr[c]
-    return v !== null && v !== undefined && String(v).trim() !== ''
-  })
-}
-
 function texteOcr(ctx: Contexte, ...cles: string[]): string | null {
   for (const c of cles) {
     const v = ctx.ocr[c]
     if (v !== null && v !== undefined && String(v).trim() !== '') return String(v).trim()
   }
+  return null
+}
+
+function nombreOcr(ctx: Contexte, ...cles: string[]): number | null {
+  const t = texteOcr(ctx, ...cles)
+  if (t === null) return null
+  const n = Number(t.replace(/[^\d,.-]/g, '').replace(',', '.'))
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+/** Surface : champ dédié, sinon « 22 m² » dans la description du logement du bail. */
+function surfaceOcr(ctx: Contexte): number | null {
+  const directe = nombreOcr(ctx, 'surface_m2', 'surface')
+  if (directe) return directe
+  const m = /(\d+(?:[.,]\d+)?)\s*m(?:²|2)/i.exec(texteOcr(ctx, 'type_logement') ?? '')
+  return m ? Number(m[1].replace(',', '.')) : null
+}
+
+/** Le bail donne « M. Paul Durand, 8 av. des Tilleuls, Paris » : on garde l'adresse. */
+function adresseBailleurOcr(ctx: Contexte): string | null {
+  const dediee = texteOcr(ctx, 'bailleur_adresse', 'adresse_bailleur')
+  if (dediee) return dediee
+  const b = texteOcr(ctx, 'bailleur')
+  if (!b || !/\d/.test(b)) return null
+  const i = b.indexOf(',')
+  return i >= 0 ? b.slice(i + 1).trim() : b
+}
+
+function typeBailleurOcr(ctx: Contexte): string | null {
+  const b = texteOcr(ctx, 'bailleur')
+  if (!b) return null
+  if (/\b(sci|sarl|sas|sa|hlm|agence|immobili|foncia|nexity|office|habitat|soci[ée]t[ée])\b/i.test(b)) return 'agence_sci_hlm'
+  if (/^(m\.|mme|mlle|monsieur|madame)\b/i.test(b)) return 'particulier'
   return null
 }
 
@@ -115,7 +142,7 @@ export const TIROIRS: Tiroir[] = [
         type: 'texte',
         obligatoire: true,
         motif: { re: /^[0-9A-Za-z]{11}$/, message: "L'INE fait 11 caractères (chiffres et lettres)." },
-        visible: (_r, ctx) => !connu(ctx, 'ine', 'numero_ine'),
+        ocr: (ctx) => texteOcr(ctx, 'ine', 'numero_ine'),
       },
       {
         cle: 'crous_niveau_etudes',
@@ -131,7 +158,7 @@ export const TIROIRS: Tiroir[] = [
         aide: 'Par exemple : Paris, Créteil, Lyon.',
         type: 'texte',
         obligatoire: true,
-        defaut: (ctx) => texteOcr(ctx, 'academie') ?? '',
+        ocr: (ctx) => texteOcr(ctx, 'academie'),
       },
       {
         cle: 'crous_fratrie_total',
@@ -236,7 +263,7 @@ export const TIROIRS: Tiroir[] = [
         type: 'nombre',
         defaut: 20,
         obligatoire: true,
-        visible: (_r, ctx) => !connu(ctx, 'surface_m2', 'surface'),
+        ocr: surfaceOcr,
       },
       OUI_NON('loyer_juillet_n_moins_1', "Tu payais déjà un loyer en juillet de l'an dernier ?", false),
       {
@@ -255,6 +282,7 @@ export const TIROIRS: Tiroir[] = [
           { valeur: 'agence_sci_hlm', label: 'Une agence, une SCI ou un HLM' },
         ],
         obligatoire: true,
+        ocr: typeBailleurOcr,
         visible: prive,
       },
       {
@@ -269,7 +297,8 @@ export const TIROIRS: Tiroir[] = [
         label: 'Adresse complète du bailleur',
         type: 'texte',
         obligatoire: true,
-        visible: (r, ctx) => prive(r) && !connu(ctx, 'bailleur_adresse', 'adresse_bailleur'),
+        ocr: adresseBailleurOcr,
+        visible: prive,
       },
       OUI_NON('patrimoine_sup_30k', 'As-tu plus de 30 000 € d’épargne ou de patrimoine ?', false),
       {
@@ -332,21 +361,21 @@ export const TIROIRS: Tiroir[] = [
         type: 'texte',
         obligatoire: true,
         motif: { re: /^\d{14}$/, message: 'Le SIRET fait 14 chiffres.' },
-        visible: (_r, ctx) => !connu(ctx, 'siret', 'siret_employeur'),
+        ocr: (ctx) => texteOcr(ctx, 'siret', 'siret_employeur'),
       },
       {
         cle: 'mj_adresse_travail',
         label: 'Adresse de ton lieu de travail',
         type: 'texte',
         obligatoire: true,
-        visible: (_r, ctx) => !connu(ctx, 'adresse_employeur', 'adresse_travail'),
+        ocr: (ctx) => texteOcr(ctx, 'adresse_employeur', 'adresse_travail'),
       },
       {
         cle: 'mj_cfa',
         label: 'Nom de ton CFA',
         type: 'texte',
         obligatoire: true,
-        visible: (_r, ctx) => !connu(ctx, 'cfa', 'nom_cfa'),
+        ocr: (ctx) => texteOcr(ctx, 'cfa', 'nom_cfa'),
       },
     ],
   },
@@ -362,6 +391,7 @@ export const TIROIRS: Tiroir[] = [
           aide: n === 1 ? 'Il est écrit sur ta fiche de paie, près du net à payer.' : undefined,
           type: 'nombre',
           obligatoire: true,
+          ocr: n === 1 ? (ctx: Contexte) => nombreOcr(ctx, 'net_social', 'montant_net_social') : undefined,
         }),
       ),
       OUI_NON('pa_hebergement_gratuit', 'Tu es logé ou logée gratuitement ?', false),
@@ -384,7 +414,15 @@ export function champVisible(champ: Champ, r: Reponses, ctx: Contexte): boolean 
   return champ.visible ? champ.visible(r, ctx) : true
 }
 
+/** Valeur lue sur les documents pour cette question, ou null. */
+export function valeurOcr(champ: Champ, ctx: Contexte): Valeur {
+  const v = champ.ocr ? champ.ocr(ctx) : null
+  return v === undefined || v === '' ? null : v
+}
+
 function valeurDefaut(champ: Champ, ctx: Contexte, r: Reponses): Valeur {
+  const lue = valeurOcr(champ, ctx)
+  if (lue !== null) return lue
   if (typeof champ.defaut === 'function') return champ.defaut(ctx, r)
   return champ.defaut ?? null
 }
@@ -398,6 +436,7 @@ export function completerDefauts(aides: Iterable<string>, r: Reponses, ctx: Cont
   const suite = { ...r }
   for (const id of aides) {
     for (const champ of tiroirDe(id)?.champs ?? []) {
+      // Pas encore de réponse : valeur lue sur les documents, sinon valeur proposée d'office.
       if (!(champ.cle in suite)) {
         const d = valeurDefaut(champ, ctx, suite)
         if (!vide(d)) suite[champ.cle] = d
