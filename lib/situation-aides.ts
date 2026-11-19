@@ -39,8 +39,10 @@ export function ajusterSelonSituation(
   if (situation.activite !== 'alternance') exclure('mobili-jeune', 'Réservée aux alternants.')
 
   if (reponses) {
-    if (reponses.nationalite_zone === 'hors_ue_non_boursier') {
-      exclure('apl', "Hors UE, l'APL est réservée aux boursiers depuis le 1er juillet 2026.")
+    // Depuis le 1er juillet 2026 (décret n° 2026-552), hors UE/EEE/Suisse, l'APL est réservée aux boursiers,
+    // sauf pour ceux qui travaillent (job, alternance) : ceux-là gardent le droit de la demander.
+    if (reponses.nationalite_zone === 'hors_ue_non_boursier' && situation.activite === 'aucune') {
+      exclure('apl', "Hors UE, l'APL est réservée aux boursiers et aux étudiants qui travaillent ou sont en alternance.")
     }
     if (reponses.bail_signe === true) exclure('visale', 'Visale se demande avant de signer le bail.')
   }
