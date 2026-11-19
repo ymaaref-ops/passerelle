@@ -5,6 +5,7 @@ import { ExternalLink, Loader2, Play, Send } from 'lucide-react'
 import { lancerDemande, lireDemande, repondreDemande, type EtatDemande } from '@/lib/demandes'
 import { adresseFenetre, ouvrirFenetre } from '@/lib/fenetre'
 import { getEtudiantId } from '@/lib/n8n'
+import { FicheDemande, lireFiche } from './fiche-demande'
 
 const TERMINAUX = ['completed', 'failed', 'timed_out', 'interrupted']
 
@@ -177,13 +178,18 @@ export function DemandeAgent({ aide }: { aide: 'visale' | 'mobili_jeune' }) {
         </div>
       )}
 
-      {fini && (
+      {fini && etat?.statut === 'completed' && lireFiche(etat.message) ? (
+        <FicheDemande
+          fiche={lireFiche(etat.message)!}
+          site={aide === 'visale' ? 'visale.fr' : 'actionlogement.fr'}
+        />
+      ) : fini ? (
         <p className="text-base font-semibold text-step-green">
           {etat?.statut === 'completed'
             ? "Ta demande est prête : relis-la et envoie-la toi-même sur le site."
             : "L'agent s'est arrêté avant la fin. On te guide pour terminer."}
         </p>
-      )}
+      ) : null}
 
       {erreur && (
         <p role="alert" className="text-sm font-medium text-danger">
