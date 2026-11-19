@@ -3,6 +3,7 @@ import { ShieldCheck } from 'lucide-react'
 import { MenuCompte } from '@/components/compte/menu-compte'
 import { EMAIL_SUPPORT } from '@/lib/support'
 import { ContactSupport } from '@/components/contact-support'
+import { MarquePasserelle } from '@/components/logo-passerelle'
 
 export function SiteHeader() {
   return (
@@ -12,12 +13,7 @@ export function SiteHeader() {
           href="/"
           className="flex items-center gap-2 rounded-lg text-xl font-bold tracking-tight text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          <span
-            aria-hidden="true"
-            className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground"
-          >
-            P
-          </span>
+          <MarquePasserelle className="size-8 shrink-0" />
           Passerelle
         </Link>
         <div className="flex items-center gap-4">

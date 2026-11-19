@@ -133,9 +133,9 @@ function messageErreur(r: ReponseAuth, statut: number): string {
   if (code === 'user_already_exists' || brut.includes('already registered'))
     return 'Un compte existe déjà avec cet e-mail : connecte-toi.'
   if (code === 'weak_password' || brut.includes('password should'))
-    return 'Mot de passe trop court : 6 caractères minimum.'
+    return 'Mot de passe trop court : 8 caractères minimum.'
   if (code === 'over_email_send_rate_limit')
-    return "Trop de comptes créés en peu de temps : l'envoi des e-mails de confirmation est limité. Réessaie dans une heure."
+    return "Trop d'e-mails envoyés en peu de temps : l'envoi est limité. Réessaie dans une heure."
   if (statut === 429) return "Trop d'essais pour le moment. Réessaie dans quelques minutes."
   if (brut.includes('invalid') && brut.includes('email')) return "Cette adresse e-mail n'est pas valide."
   return "Ça n'a pas marché. Réessaie dans un instant."
@@ -193,7 +193,7 @@ export async function renvoyerConfirmation(email: string): Promise<void> {
  * Arrivée depuis le lien de confirmation : Supabase met la session dans l'adresse (#access_token=…).
  * Renvoie 'connecte', un message d'erreur, ou null s'il n'y a rien à lire.
  */
-export async function sessionDepuisLien(): Promise<'connecte' | { erreur: string } | null> {
+export async function sessionDepuisLien(): Promise<'connecte' | 'recuperation' | { erreur: string } | null> {
   if (typeof window === 'undefined') return null
   const hash = window.location.hash.replace(/^#/, '')
   if (!hash.includes('access_token=') && !hash.includes('error')) return null
@@ -224,7 +224,31 @@ export async function sessionDepuisLien(): Promise<'connecte' | { erreur: string
     email: user.email ?? '',
     prenom: user.user_metadata?.prenom ?? null,
   })
-  return 'connecte'
+  // Lien « mot de passe oublié » : l'étudiant doit d'abord choisir un nouveau mot de passe.
+  return p.get('type') === 'recovery' ? 'recuperation' : 'connecte'
+}
+
+/** Mot de passe oublié : Supabase envoie un lien qui ramène sur Passerelle pour en choisir un nouveau. */
+export async function demanderNouveauMotDePasse(email: string): Promise<void> {
+  const retour = `${window.location.origin}/connexion?nouveau=1`
+  const { r, statut } = await appelAuth(`recover?redirect_to=${encodeURIComponent(retour)}`, { email })
+  if (statut >= 400) throw new Error(messageErreur(r, statut))
+}
+
+/** Enregistre le nouveau mot de passe de l'étudiant connecté (après le lien reçu par e-mail). */
+export async function changerMotDePasse(motDePasse: string): Promise<void> {
+  const jeton = await jetonValide()
+  if (!jeton) throw new Error('Le lien a expiré : redemande un lien « mot de passe oublié ».')
+  const reponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    method: 'PUT',
+    headers: { apikey: CLE_PUBLIQUE, Authorization: `Bearer ${jeton}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: motDePasse }),
+  })
+  if (!reponse.ok) {
+    const r = (await reponse.json().catch(() => ({}))) as ReponseAuth
+    if (r.error_code === 'same_password') throw new Error("C'est déjà ton mot de passe actuel : choisis-en un autre.")
+    throw new Error(messageErreur(r, reponse.status))
+  }
 }
 
 export async function seConnecter(email: string, motDePasse: string): Promise<void> {

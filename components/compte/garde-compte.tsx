@@ -16,10 +16,12 @@ export function GardeCompte({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let actif = true
-    // Lien de confirmation d'e-mail : on connecte l'étudiant puis on l'emmène aux démarches.
+    // Lien de confirmation d'e-mail (ou « mot de passe oublié ») : on connecte l'étudiant.
     if (window.location.hash.includes('access_token=')) {
       sessionDepuisLien().then((r) => {
-        if (actif && r === 'connecte') router.replace(publique ? '/demarrer' : pathname)
+        if (!actif) return
+        if (r === 'recuperation') router.replace('/connexion?nouveau=1')
+        else if (r === 'connecte') router.replace(publique ? '/demarrer' : pathname)
       })
       return () => {
         actif = false

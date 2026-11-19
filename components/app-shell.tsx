@@ -20,6 +20,7 @@ import { SiteHeader } from '@/components/site-header'
 import { EMAIL_SUPPORT } from '@/lib/support'
 import { ContactSupport } from '@/components/contact-support'
 import { cn } from '@/lib/utils'
+import { MarquePasserelle } from '@/components/logo-passerelle'
 import { getEtudiantId } from '@/lib/n8n'
 
 const MENU: { href: string; label: string; Icone: LucideIcon; actif?: string[]; verrou?: boolean }[] = [
@@ -43,9 +44,7 @@ function Logo() {
       href="/"
       className="flex items-center gap-2.5 rounded-xl text-xl font-extrabold tracking-tight text-primary outline-none focus-visible:ring-4 focus-visible:ring-ring/30"
     >
-      <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-        P
-      </span>
+      <MarquePasserelle className="size-9 shrink-0" />
       Passerelle
     </Link>
   )

@@ -17,11 +17,13 @@ export const metadata: Metadata = {
   description:
     'Passerelle aide les étudiants et alternants à découvrir leurs aides (APL, prêt étudiant, bourse…), déposer leurs documents une seule fois et faire les démarches avec des agents IA. Tu valides toujours avant l’envoi.',
   generator: 'v0.app',
+  appleWebApp: { capable: true, title: 'Passerelle', statusBarStyle: 'default' },
   icons: {
     icon: [
       { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },
       { url: '/icon-dark-32x32.png', media: '(prefers-color-scheme: dark)' },
       { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-48.png', sizes: '48x48', type: 'image/png' },
     ],
     apple: '/apple-icon.png',
   },

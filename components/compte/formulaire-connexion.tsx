@@ -2,9 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, LogIn, MailCheck, UserPlus } from 'lucide-react'
+import { KeyRound, Loader2, LogIn, MailCheck, UserPlus } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
-import { creerCompte, jetonValide, renvoyerConfirmation, seConnecter } from '@/lib/compte'
+import {
+  changerMotDePasse,
+  creerCompte,
+  demanderNouveauMotDePasse,
+  jetonValide,
+  renvoyerConfirmation,
+  seConnecter,
+} from '@/lib/compte'
 import { cn } from '@/lib/utils'
 
 type Mode = 'connexion' | 'creation'
@@ -28,6 +35,11 @@ export function FormulaireConnexion() {
   const [aConfirmer, setAConfirmer] = useState(false)
 
   const [renvoye, setRenvoye] = useState(false)
+  // Mot de passe oublié : 'demande' (saisie de l'e-mail), 'envoye' (lien parti), 'nouveau' (arrivée par le lien).
+  const nouveauDemande = params.get('nouveau') === '1'
+  const [oubli, setOubli] = useState<'non' | 'demande' | 'envoye' | 'nouveau'>(nouveauDemande ? 'nouveau' : 'non')
+  const [confirmation, setConfirmation] = useState('')
+  const [change, setChange] = useState(false)
 
   // Lien de confirmation expiré ou invalide : Supabase l'indique dans l'adresse.
   useEffect(() => {
@@ -45,10 +57,44 @@ export function FormulaireConnexion() {
 
   // Déjà connecté : on passe directement aux démarches.
   useEffect(() => {
+    if (nouveauDemande) return
     jetonValide().then((jeton) => {
       if (jeton) router.replace(suite)
     })
-  }, [router, suite])
+  }, [router, suite, nouveauDemande])
+
+  async function envoyerLien(e: React.FormEvent) {
+    e.preventDefault()
+    setErreur(null)
+    setEnCours(true)
+    try {
+      await demanderNouveauMotDePasse(email.trim())
+      setOubli('envoye')
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Le lien n'a pas pu être envoyé.")
+    } finally {
+      setEnCours(false)
+    }
+  }
+
+  async function enregistrerNouveau(e: React.FormEvent) {
+    e.preventDefault()
+    setErreur(null)
+    if (motDePasse !== confirmation) {
+      setErreur('Les deux mots de passe ne sont pas identiques.')
+      return
+    }
+    setEnCours(true)
+    try {
+      await changerMotDePasse(motDePasse)
+      setChange(true)
+      window.setTimeout(() => router.replace('/demarrer'), 1500)
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Le mot de passe n'a pas pu être changé.")
+    } finally {
+      setEnCours(false)
+    }
+  }
 
   async function valider(e: React.FormEvent) {
     e.preventDefault()
@@ -70,6 +116,89 @@ export function FormulaireConnexion() {
     } finally {
       setEnCours(false)
     }
+  }
+
+  const messageErreurVue = erreur && (
+    <p role="alert" className="text-sm font-medium text-danger">
+      {erreur}
+    </p>
+  )
+  const bouton = cn(buttonVariants({ size: 'lg' }), 'h-12 gap-2 rounded-2xl text-base font-semibold')
+
+  if (oubli === 'nouveau') {
+    return (
+      <section className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Choisis un nouveau mot de passe</h1>
+          <p className="mt-2 leading-relaxed text-muted-foreground">8 caractères minimum.</p>
+        </div>
+        {change ? (
+          <p role="status" className="rounded-2xl border border-step-green-border bg-step-green-soft p-4 font-semibold text-step-green">
+            C&apos;est fait : ton mot de passe est changé. On t&apos;emmène à tes démarches…
+          </p>
+        ) : (
+          <form onSubmit={enregistrerNouveau} className="flex flex-col gap-4 rounded-3xl bg-card shadow-carte p-5 sm:p-6">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-foreground">Nouveau mot de passe</span>
+              <input required type="password" minLength={8} autoComplete="new-password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} className={CHAMP} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-foreground">Le même, une deuxième fois</span>
+              <input required type="password" minLength={8} autoComplete="new-password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} className={CHAMP} />
+            </label>
+            {messageErreurVue}
+            <button type="submit" disabled={enCours} className={bouton}>
+              {enCours ? <Loader2 className="size-5 motion-safe:animate-spin" aria-hidden="true" /> : <KeyRound className="size-5" aria-hidden="true" />}
+              Enregistrer mon mot de passe
+            </button>
+          </form>
+        )}
+      </section>
+    )
+  }
+
+  if (oubli === 'demande' || oubli === 'envoye') {
+    return (
+      <section className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Mot de passe oublié</h1>
+          <p className="mt-2 leading-relaxed text-muted-foreground">
+            Donne l&apos;e-mail de ton compte : on t&apos;envoie un lien pour en choisir un nouveau.
+          </p>
+        </div>
+        {oubli === 'envoye' ? (
+          <div className="flex flex-col gap-3 rounded-3xl border border-step-blue-border bg-step-blue-soft p-6">
+            <MailCheck className="size-8 text-step-blue" aria-hidden="true" />
+            <p className="leading-relaxed text-foreground">
+              Si un compte existe avec <strong>{email}</strong>, tu vas recevoir un e-mail. Clique sur le lien : tu
+              reviendras ici pour choisir ton nouveau mot de passe. Pense à regarder dans les indésirables.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={envoyerLien} className="flex flex-col gap-4 rounded-3xl bg-card shadow-carte p-5 sm:p-6">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-foreground">E-mail</span>
+              <input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={CHAMP} />
+            </label>
+            {messageErreurVue}
+            <button type="submit" disabled={enCours} className={bouton}>
+              {enCours ? <Loader2 className="size-5 motion-safe:animate-spin" aria-hidden="true" /> : <MailCheck className="size-5" aria-hidden="true" />}
+              M&apos;envoyer un lien
+            </button>
+          </form>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            setOubli('non')
+            setErreur(null)
+          }}
+          className="self-start text-sm font-semibold text-primary underline-offset-4 hover:underline"
+        >
+          ← Revenir à la connexion
+        </button>
+      </section>
+    )
   }
 
   if (aConfirmer) {
@@ -195,6 +324,18 @@ export function FormulaireConnexion() {
             className={CHAMP}
           />
           {mode === 'creation' && <span className="text-sm text-muted-foreground">8 caractères minimum.</span>}
+          {mode === 'connexion' && (
+            <button
+              type="button"
+              onClick={() => {
+                setOubli('demande')
+                setErreur(null)
+              }}
+              className="self-end text-sm font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              Mot de passe oublié ?
+            </button>
+          )}
         </label>
 
         {mode === 'creation' && (
