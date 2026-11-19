@@ -36,13 +36,19 @@ export function decouperCompteRendu(texte: string): string[] {
 
 /** Compte rendu d'un agent en liste à puces, plus lisible qu'un bloc de texte. */
 export function CompteRenduAgent({ texte, className }: { texte: string; className?: string }) {
-  const points = decouperCompteRendu(texte)
-  if (points.length <= 1) return <p className={cn('text-sm leading-relaxed', className)}>{points[0] ?? texte}</p>
+  const tous = decouperCompteRendu(texte)
+  // Une phrase d'introduction (« … suivantes : ») reste un texte au-dessus de la liste, pas une puce.
+  const intro = tous.length > 1 && tous[0].endsWith(':') ? tous[0] : null
+  const points = intro ? tous.slice(1) : tous
+  if (points.length <= 1 && !intro) return <p className={cn('text-sm leading-relaxed', className)}>{points[0] ?? texte}</p>
   return (
-    <ul className={cn('flex list-disc flex-col gap-1 pl-5 text-sm leading-relaxed marker:text-primary', className)}>
-      {points.map((p, i) => (
-        <li key={i}>{p}</li>
-      ))}
-    </ul>
+    <div className={cn('flex flex-col gap-1.5 text-sm leading-relaxed', className)}>
+      {intro && <p className="font-medium">{intro}</p>}
+      <ul className="flex list-disc flex-col gap-1 pl-5 marker:text-primary">
+        {points.map((p, i) => (
+          <li key={i}>{p}</li>
+        ))}
+      </ul>
+    </div>
   )
 }
