@@ -1,11 +1,12 @@
 'use client'
 
-import { BriefcaseBusiness, CircleAlert, CircleCheck, Globe, Home, KeyRound, Landmark, ShieldCheck, GraduationCap } from 'lucide-react'
+import { BriefcaseBusiness, CircleAlert, CircleCheck, Globe, Home, KeyRound, Landmark, ShieldCheck, GraduationCap, ExternalLink } from 'lucide-react'
 import type { AgentId, AgentStatut } from '@/lib/agents'
 import { cn } from '@/lib/utils'
 import { BarreMarcheur } from '@/components/barre-marcheur'
 import { DemandeAgent } from './demande-agent'
 import { DetailDemarche } from './detail-demarche'
+import { adresseFenetre, ouvrirFenetre } from '@/lib/fenetre'
 import { FormulaireAgent } from './formulaire-agent'
 import { STYLES_STATUT, StatutBadge } from './statut-badge'
 
@@ -122,6 +123,19 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
           className="mt-1"
         />
       </div>
+
+      {agent.lienDirect && (
+        <button
+          type="button"
+          onClick={() =>
+            ouvrirFenetre(agent.lienDirect!.includes('/share/') ? adresseFenetre('', agent.lienDirect!) : agent.lienDirect!)
+          }
+          className="inline-flex h-10 items-center justify-center gap-2 self-start rounded-full border border-border bg-card px-4 text-sm font-semibold text-step-blue outline-none hover:bg-primary-soft focus-visible:ring-4 focus-visible:ring-ring/30"
+        >
+          <ExternalLink className="size-4" aria-hidden="true" />
+          Ouvrir l&apos;agent (pas à pas)
+        </button>
+      )}
 
       <DetailDemarche agent={agent} />
 
