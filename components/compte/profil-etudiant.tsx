@@ -7,6 +7,8 @@ import { AlertTriangle, CheckCircle2, FileText, Loader2, LogOut, Pencil, Refresh
 import { buttonVariants } from '@/components/ui/button'
 import {
   enregistrerProfil,
+  enregistrerQuestionnaireCompte,
+  enregistrerSituationCompte,
   lireMonCompte,
   seDeconnecter,
   type DocumentEnregistre,
@@ -14,6 +16,15 @@ import {
   type ProfilEtudiant as Profil,
 } from '@/lib/compte'
 import { setEtudiantId } from '@/lib/n8n'
+import { enregistrerSituation, lireSituation, type Activite, type Situation } from '@/lib/session'
+import { enregistrerQuestionnaireLocal, lireQuestionnaire } from '@/lib/questionnaire'
+
+/** L'activité du profil est la même que celle de l'étape Situation : elle décide des documents demandés. */
+const ACTIVITES: { valeur: Activite; label: string; statut: string }[] = [
+  { valeur: 'alternance', label: 'Alternance', statut: 'alternant' },
+  { valeur: 'job', label: 'Job étudiant', statut: 'salarie' },
+  { valeur: 'aucune', label: "Pas d'activité", statut: 'etudiant' },
+]
 import { cn } from '@/lib/utils'
 
 const NOMS_DOCUMENTS: Record<string, string> = {
@@ -66,7 +77,6 @@ const CHAMPS: Champ[] = [
   { cle: 'type_logement', libelle: 'Type de logement', aide: 'Par exemple : studio meublé, colocation…' },
   { cle: 'loyer_hors_charges', libelle: 'Loyer hors charges (€)', type: 'number' },
   { cle: 'charges', libelle: 'Charges (€)', type: 'number' },
-  { cle: 'situation_pro', libelle: 'Activité', aide: 'Alternance, job étudiant, aucune…' },
   { cle: 'ressources_12_mois', libelle: 'Revenus des 12 derniers mois (€)', type: 'number' },
   { cle: 'boursier', libelle: 'Boursier', type: 'oui-non' },
 ]
@@ -110,18 +120,24 @@ export function ProfilEtudiant() {
   const [enregistrement, setEnregistrement] = useState(false)
   const [erreurProfil, setErreurProfil] = useState<string | null>(null)
   const [enregistre, setEnregistre] = useState(false)
+  const [situation, setSituation] = useState<Situation | null>(null)
+  const [activite, setActivite] = useState<Activite | ''>('')
 
   useEffect(() => {
     lireMonCompte()
       .then((c) => {
         setCompte(c)
         if (c.etudiant_id) setEtudiantId(c.etudiant_id)
+        const s = lireSituation() ?? (c.situation as Situation | null) ?? null
+        setSituation(s)
+        setActivite(s?.activite ?? '')
       })
       .catch((e) => setErreur(e instanceof Error ? e.message : 'Ton profil ne peut pas être chargé.'))
   }, [])
 
   function modifier() {
     setBrouillon(versBrouillon(compte?.profil ?? null))
+    setActivite(situation?.activite ?? '')
     setErreurProfil(null)
     setEnregistre(false)
     setEdition(true)
@@ -137,7 +153,23 @@ export function ProfilEtudiant() {
         const v = brouillon[c.cle].trim()
         valeurs[c.cle] = c.type === 'oui-non' ? (v === 'oui' ? true : v === 'non' ? false : null) : v || null
       }
+      const choix = ACTIVITES.find((a) => a.valeur === activite)
+      if (choix) valeurs.situation_pro = choix.label
       const r = await enregistrerProfil(valeurs)
+      // Activité changée : la situation (documents demandés, aides) et le questionnaire suivent.
+      if (choix && situation && situation.activite !== choix.valeur) {
+        const nouvelle: Situation = { ...situation, activite: choix.valeur }
+        enregistrerSituation(nouvelle)
+        setSituation(nouvelle)
+        await enregistrerSituationCompte(nouvelle).catch(() => undefined)
+        const q = lireQuestionnaire()
+        const questionnaire = {
+          email_demarches: q?.email_demarches ?? compte?.email ?? '',
+          reponses: { ...(q?.reponses ?? {}), statut: choix.statut },
+        }
+        enregistrerQuestionnaireLocal(questionnaire)
+        await enregistrerQuestionnaireCompte(questionnaire).catch(() => undefined)
+      }
       setEtudiantId(r.etudiant_id)
       setCompte((ancien) =>
         ancien
@@ -236,6 +268,22 @@ export function ProfilEtudiant() {
         {edition ? (
           <form onSubmit={enregistrer} className="mt-4 flex flex-col gap-4">
             <div className="grid gap-4 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-foreground">Activité</span>
+                <select value={activite} onChange={(e) => setActivite(e.target.value as Activite)} className={CHAMP_SAISIE}>
+                  <option value="" disabled>
+                    Choisis…
+                  </option>
+                  {ACTIVITES.map((a) => (
+                    <option key={a.valeur} value={a.valeur}>
+                      {a.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-xs text-muted-foreground">
+                  Décide des documents demandés : la fiche de paie n&apos;est obligatoire qu&apos;en alternance.
+                </span>
+              </label>
               {CHAMPS.map((c) => (
                 <label key={c.cle} className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium text-foreground">{c.libelle}</span>
@@ -298,6 +346,7 @@ export function ProfilEtudiant() {
           </form>
         ) : (
           <dl className="mt-3">
+            <Ligne libelle="Activité" valeur={ACTIVITES.find((a) => a.valeur === situation?.activite)?.label ?? p?.situation_pro} />
             {CHAMPS.map((c) => (
               <Ligne key={c.cle} libelle={c.libelle} valeur={afficher(c, p)} />
             ))}
