@@ -1,12 +1,20 @@
 // Simulation FICTIVE de l'analyse des documents — sera remplacée par une vraie analyse (OCR / IA).
 import { etudiantCourant as etudiant } from '@/lib/data'
 
-export type DocumentRequis = 'identite' | 'bail' | 'certificat_scolarite' | 'avis_imposition' | 'fiche_paie'
+export type DocumentRequis =
+  | 'identite'
+  | 'bail'
+  | 'certificat_scolarite'
+  | 'avis_imposition'
+  | 'fiche_paie'
+  | 'contrat_alternance'
 
 export interface DefinitionDocument {
   type: DocumentRequis
   titre: string
   description: string
+  /** Utile mais pas obligatoire pour continuer. */
+  facultatif?: boolean
 }
 
 export const DOCUMENTS_REQUIS: DefinitionDocument[] = [
@@ -35,14 +43,37 @@ export const DOCUMENTS_REQUIS: DefinitionDocument[] = [
     titre: 'Fiche de paie',
     description: 'Ta dernière fiche de paie (alternance ou job étudiant).',
   },
+  {
+    type: 'contrat_alternance',
+    titre: "Contrat d'alternance",
+    description: "Ton contrat d'apprentissage ou de professionnalisation (CERFA). Utile pour Mobili-Jeune.",
+  },
 ]
 
-/** Documents demandés selon la situation : bail si locataire, fiche de paie si l'étudiant travaille. */
-export function documentsPour(situation: { logement: string; activite: string }): DefinitionDocument[] {
-  return DOCUMENTS_REQUIS.filter((d) => {
-    if (d.type === 'bail') return situation.logement === 'locataire'
-    if (d.type === 'fiche_paie') return situation.activite !== 'aucune'
-    return true
+/**
+ * Documents demandés selon les réponses du questionnaire du début :
+ * - bail : seulement si l'étudiant est locataire ;
+ * - fiche de paie : seulement s'il travaille (job ou alternance) ;
+ * - avis d'imposition des parents : seulement s'il ne sait pas s'il a droit à la bourse, et en facultatif
+ *   (il sert à estimer la bourse ; inutile s'il a déjà répondu oui ou non) ;
+ * - contrat d'alternance : seulement en alternance, en facultatif (utile pour Mobili-Jeune).
+ */
+export function documentsPour(situation: { logement: string; activite: string; bourse?: string }): DefinitionDocument[] {
+  return DOCUMENTS_REQUIS.flatMap((d): DefinitionDocument[] => {
+    switch (d.type) {
+      case 'bail':
+        return situation.logement === 'locataire' ? [d] : []
+      case 'fiche_paie':
+        return situation.activite !== 'aucune' ? [d] : []
+      case 'avis_imposition':
+        return situation.bourse === 'ne_sais_pas'
+          ? [{ ...d, facultatif: true, description: `${d.description} Il sert à estimer ta bourse Crous.` }]
+          : []
+      case 'contrat_alternance':
+        return situation.activite === 'alternance' ? [{ ...d, facultatif: true }] : []
+      default:
+        return [d]
+    }
   })
 }
 
@@ -81,6 +112,8 @@ export function extraitDocument(type: DocumentRequis, avisValides: number): stri
       return `Avis d'imposition ${avisValides >= 2 ? ANNEE_AVIS_ATTENDUE : ANNEE_AVIS_ATTENDUE - 1} · foyer ${etudiant.nom}`
     case 'fiche_paie':
       return `Salaire net ${etudiant.salaire_alternance} € par mois`
+    case 'contrat_alternance':
+      return "Contrat d'alternance"
   }
 }
 

@@ -3,6 +3,7 @@
 import { BriefcaseBusiness, CircleCheck, Globe, Home, KeyRound, Landmark, ShieldCheck } from 'lucide-react'
 import type { AgentId, AgentStatut } from '@/lib/agents'
 import { cn } from '@/lib/utils'
+import { BarreMarcheur } from '@/components/barre-marcheur'
 import { DemandeAgent } from './demande-agent'
 import { FormulaireAgent } from './formulaire-agent'
 import { STYLES_STATUT, StatutBadge } from './statut-badge'
@@ -93,19 +94,12 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
           <span className="text-muted-foreground">Avancement</span>
           <span className="font-semibold text-foreground tabular-nums">{agent.progression} %</span>
         </div>
-        <div
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={agent.progression}
-          aria-label={`Avancement : ${agent.nom}`}
-          className="h-2.5 overflow-hidden rounded-full bg-foreground/10"
-        >
-          <div
-            className={cn('h-full rounded-full transition-[width] duration-1000 ease-linear', style.barre)}
-            style={{ width: `${agent.progression}%` }}
-          />
-        </div>
+        <BarreMarcheur
+          valeur={agent.progression}
+          label={`Avancement : ${agent.nom}`}
+          couleur={style.barre}
+          className="mt-1"
+        />
       </div>
 
       </>

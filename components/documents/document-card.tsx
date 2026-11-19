@@ -25,6 +25,7 @@ const ICONES: Record<DocumentRequis, typeof FileText> = {
   certificat_scolarite: GraduationCap,
   avis_imposition: FileText,
   fiche_paie: Receipt,
+  contrat_alternance: FileText,
 }
 
 interface DocumentCardProps {
@@ -73,7 +74,14 @@ export function DocumentCard({
           <Icon className="size-6" aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <h3 className="text-lg font-semibold text-foreground">{definition.titre}</h3>
+          <h3 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-foreground">
+            {definition.titre}
+            {definition.facultatif && (
+              <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                Facultatif
+              </span>
+            )}
+          </h3>
           <p className="text-sm leading-relaxed text-muted-foreground">{definition.description}</p>
         </div>
       </div>

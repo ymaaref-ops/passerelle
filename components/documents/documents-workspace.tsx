@@ -23,6 +23,7 @@ const TYPE_N8N: Record<DocumentRequis, string> = {
   certificat_scolarite: 'certificat_scolarite',
   avis_imposition: 'avis_imposition',
   fiche_paie: 'fiche_paie',
+  contrat_alternance: 'contrat_alternance',
 }
 
 /** Temps maximum d'attente de la lecture des documents. */
@@ -37,6 +38,7 @@ const VIDE: Record<DocumentRequis, File | null> = {
   certificat_scolarite: null,
   avis_imposition: null,
   fiche_paie: null,
+  contrat_alternance: null,
 }
 
 function texte(v: unknown): string {
@@ -56,6 +58,8 @@ function extraitLu(type: DocumentRequis, c: Record<string, unknown>): string {
       return `Avis ${texte(c.annee_avis)} sur les revenus ${texte(c.annee_revenus)} · ${texte(c.declarants)}`
     case 'fiche_paie':
       return `${texte(c.employeur)} · ${texte(c.periode)} · net ${texte(c.net_a_payer)} €`
+    case 'contrat_alternance':
+      return `${texte(c.employeur)} · ${texte(c.cfa)} · du ${texte(c.date_debut)} au ${texte(c.date_fin)}`
   }
 }
 
@@ -90,6 +94,8 @@ export function DocumentsWorkspace() {
   }, [router])
 
   const DOCUMENTS_REQUIS: DefinitionDocument[] = situation ? documentsPour(situation) : []
+  // Seuls les documents obligatoires bloquent la suite ; les facultatifs sont envoyés s'ils sont ajoutés.
+  const OBLIGATOIRES = DOCUMENTS_REQUIS.filter((d) => !d.facultatif)
 
   // Connecté : on reprend les documents déjà vérifiés du compte, sans les redemander.
   useEffect(() => {
@@ -132,13 +138,13 @@ export function DocumentsWorkspace() {
   const parType = (type: DocumentRequis) => lus.find((d) => d.type === TYPE_N8N[type])
   const bloquantes = (d?: DocumentN8n) => (d?.anomalies ?? []).filter((a) => a.gravite === 'bloquante')
 
-  const tousDeposes = DOCUMENTS_REQUIS.every((d) => fichiers[d.type])
+  const tousDeposes = OBLIGATOIRES.every((d) => fichiers[d.type])
   const peutEnvoyer = situation !== null && tousDeposes && accord && phase === 'saisie'
 
   const dossierComplet =
     phase === 'resultat' &&
-    DOCUMENTS_REQUIS.length > 0 &&
-    DOCUMENTS_REQUIS.every((d) => {
+    OBLIGATOIRES.length > 0 &&
+    OBLIGATOIRES.every((d) => {
       const lu = parType(d.type)
       return lu && lu.statut !== 'rejete' && bloquantes(lu).length === 0
     })
@@ -282,8 +288,8 @@ export function DocumentsWorkspace() {
     return { statut: 'verifie', extrait: extraitLu(type, lu.champs_extraits ?? {}), probleme: null }
   }
 
-  const nbVerifies = DOCUMENTS_REQUIS.filter((d) => affichage(d.type).statut === 'verifie').length
-  const nbDeposes = DOCUMENTS_REQUIS.filter((d) => fichiers[d.type]).length
+  const nbVerifies = OBLIGATOIRES.filter((d) => affichage(d.type).statut === 'verifie').length
+  const nbDeposes = OBLIGATOIRES.filter((d) => fichiers[d.type]).length
   const pluriel = (n: number) => (n > 1 ? 's' : '')
   const aVerifier = lus.flatMap((d) => (d.anomalies ?? []).filter((a) => a.gravite === 'a_verifier'))
 
@@ -320,10 +326,10 @@ export function DocumentsWorkspace() {
         <div className="min-w-0 flex-1">
           <p aria-live="polite" className="text-xl font-bold text-foreground">
             {phase === 'saisie'
-              ? `${nbDeposes} document${pluriel(nbDeposes)} sur ${DOCUMENTS_REQUIS.length} ajouté${pluriel(nbDeposes)}`
+              ? `${nbDeposes} document${pluriel(nbDeposes)} obligatoire${pluriel(OBLIGATOIRES.length)} sur ${OBLIGATOIRES.length} ajouté${pluriel(nbDeposes)}`
               : phase === 'analyse'
                 ? 'Lecture de tes documents en cours…'
-                : `${nbVerifies} document${pluriel(nbVerifies)} sur ${DOCUMENTS_REQUIS.length} vérifié${pluriel(nbVerifies)}`}
+                : `${nbVerifies} document${pluriel(nbVerifies)} sur ${OBLIGATOIRES.length} vérifié${pluriel(nbVerifies)}`}
           </p>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {phase === 'analyse'
@@ -359,7 +365,7 @@ export function DocumentsWorkspace() {
                   ? 'Remplace le document signalé, puis renvoie ton dossier.'
                   : phase === 'analyse'
                     ? 'Vérification en cours…'
-                    : `Envoie tes ${DOCUMENTS_REQUIS.length} documents pour continuer.`}
+                    : `Envoie tes ${OBLIGATOIRES.length} documents obligatoires pour continuer.`}
               </p>
             </>
           )}
@@ -464,7 +470,7 @@ export function DocumentsWorkspace() {
             {!peutEnvoyer && phase === 'saisie' && (
               <p className="text-sm text-muted-foreground">
                 {!tousDeposes
-                  ? `Ajoute tes ${DOCUMENTS_REQUIS.length} documents.`
+                  ? `Ajoute tes ${OBLIGATOIRES.length} documents obligatoires.`
                   : 'Coche la case pour accepter l’analyse.'}
               </p>
             )}
@@ -480,7 +486,7 @@ export function DocumentsWorkspace() {
       {dossierComplet && (
         <p className="mt-4 flex items-center gap-2 font-semibold text-success">
           <CheckCircle2 className="size-5" aria-hidden="true" />
-          Tes {DOCUMENTS_REQUIS.length} documents sont vérifiés.
+          Tes {OBLIGATOIRES.length} documents obligatoires sont vérifiés.
         </p>
       )}
 
