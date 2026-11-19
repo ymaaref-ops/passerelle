@@ -9,14 +9,15 @@ import {
   Gift,
   Home,
   ListChecks,
+  Headset,
   Search,
-  ShieldCheck,
   TrendingUp,
   UserRound,
   type LucideIcon,
 } from 'lucide-react'
 import { MenuCompte, useSession } from '@/components/compte/menu-compte'
 import { SiteHeader } from '@/components/site-header'
+import { EMAIL_SUPPORT, lienSupport } from '@/lib/support'
 import { cn } from '@/lib/utils'
 
 const MENU: { href: string; label: string; Icone: LucideIcon; actif?: string[] }[] = [
@@ -74,9 +75,16 @@ function BarreLaterale({ pathname }: { pathname: string }) {
         })}
       </nav>
       <div className="mt-auto flex flex-col items-center gap-2 rounded-3xl bg-primary-soft p-5 text-center">
-        <ShieldCheck className="size-7 text-step-blue" aria-hidden="true" />
-        <p className="font-bold text-foreground">Tu gardes la main</p>
-        <p className="text-sm leading-snug text-muted-foreground">Rien n&apos;est envoyé sans ta validation.</p>
+        <Headset className="size-7 text-step-blue" aria-hidden="true" />
+        <p className="font-bold text-foreground">Une question ?</p>
+        <p className="text-sm leading-snug text-muted-foreground">Notre équipe est là pour t&apos;aider.</p>
+        <a
+          href={lienSupport()}
+          className="mt-1 inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring/30"
+        >
+          Contacter
+        </a>
+        <p className="text-xs break-all text-muted-foreground">{EMAIL_SUPPORT}</p>
       </div>
     </aside>
   )
@@ -142,6 +150,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Logo />
             </div>
             <div className="ml-auto flex items-center gap-2 sm:gap-4">
+              <a
+                href={lienSupport()}
+                aria-label={`Contacter le support : ${EMAIL_SUPPORT}`}
+                className="flex size-11 items-center justify-center rounded-full text-foreground outline-none hover:bg-card/70 focus-visible:ring-4 focus-visible:ring-ring/30 lg:hidden"
+              >
+                <Headset className="size-5" aria-hidden="true" />
+              </a>
               <Link
                 href="/agents"
                 aria-label="Suivi de tes démarches"
