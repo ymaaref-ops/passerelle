@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { SiteHeader } from '@/components/site-header'
 import { ProgressSteps } from '@/components/progress-steps'
+import { GardeCompte } from '@/components/compte/garde-compte'
 import './globals.css'
 
 const jakarta = Plus_Jakarta_Sans({
@@ -43,7 +44,9 @@ export default function RootLayout({
       <body className="min-h-dvh antialiased">
         <SiteHeader />
         <ProgressSteps />
-        <main>{children}</main>
+        <main>
+          <GardeCompte>{children}</GardeCompte>
+        </main>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

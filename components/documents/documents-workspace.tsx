@@ -11,7 +11,8 @@ import { DocumentCard } from '@/components/documents/document-card'
 import type { StatutDocumentUI } from '@/components/documents/statut-pastille'
 import { etudiantCourant } from '@/lib/data'
 import { documentsPour, verifierFichier, type DefinitionDocument, type DocumentRequis } from '@/lib/documents-demo'
-import { deposerDocuments, lireEtatEtudiant, type DocumentN8n } from '@/lib/n8n'
+import { deposerDocuments, lireEtatEtudiant, setEtudiantId, type DocumentN8n } from '@/lib/n8n'
+import { lierDossier, lireMonCompte, lirePhotos, photoVersFichier, sessionCourante } from '@/lib/compte'
 import { lireSituation, marquerDocumentsValides, type Situation } from '@/lib/session'
 import { cn } from '@/lib/utils'
 
@@ -72,6 +73,9 @@ export function DocumentsWorkspace() {
   const inputPhoto = useRef<HTMLInputElement>(null)
   const cible = useRef<DocumentRequis | null>(null)
   const sondage = useRef<number | null>(null)
+  // Documents gardés dans le compte depuis une visite précédente.
+  const [enregistres, setEnregistres] = useState(false)
+  const [chargementCompte, setChargementCompte] = useState(true)
 
   useEffect(() => () => {
     if (sondage.current) window.clearTimeout(sondage.current)
@@ -85,6 +89,38 @@ export function DocumentsWorkspace() {
   }, [router])
 
   const DOCUMENTS_REQUIS: DefinitionDocument[] = situation ? documentsPour(situation) : []
+
+  // Connecté : on reprend les documents déjà vérifiés du compte, sans les redemander.
+  useEffect(() => {
+    let actif = true
+    lireMonCompte()
+      .then(async (compte) => {
+        if (!actif || !compte.etudiant_id || compte.documents.length === 0) return
+        setEtudiantId(compte.etudiant_id)
+        setLus(compte.documents)
+        setEnregistres(true)
+        setAccord(true)
+        setPhase('resultat')
+        // Les photos (gardées 30 jours) permettent de ne remplacer qu'un seul document.
+        const photos = await lirePhotos().catch(() => [])
+        if (!actif) return
+        setFichiers((prev) => {
+          const suite = { ...prev }
+          for (const [ui, n8n] of Object.entries(TYPE_N8N) as [DocumentRequis, string][]) {
+            const photo = photos.find((ph) => ph.type === n8n && ph.contenu_base64)
+            if (photo && !suite[ui]) suite[ui] = photoVersFichier(photo)
+          }
+          return suite
+        })
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (actif) setChargementCompte(false)
+      })
+    return () => {
+      actif = false
+    }
+  }, [])
 
   // Document lu par l'IA pour chaque type attendu.
   const parType = (type: DocumentRequis) => lus.find((d) => d.type === TYPE_N8N[type])
@@ -111,6 +147,7 @@ export function DocumentsWorkspace() {
     setErreursFichier((prev) => ({ ...prev, [type]: probleme ?? undefined }))
     if (probleme) return
     setFichiers((prev) => ({ ...prev, [type]: fichier }))
+    setEnregistres(false)
     // Un document changé : il faut renvoyer le dossier pour qu'il soit relu.
     if (phase === 'resultat') {
       setPhase('saisie')
@@ -150,6 +187,8 @@ export function DocumentsWorkspace() {
       donnees.append('prenom', etudiantCourant.prenom)
       donnees.append('nom', etudiantCourant.nom)
       donnees.append('aides', 'apl')
+      const session = sessionCourante()
+      if (session?.email) donnees.append('email', session.email)
       donnees.append('ressources_12_mois', String(situation?.ressources ?? 0))
       if (situation?.bourse === 'oui' || situation?.bourse === 'non') {
         donnees.append('boursier', situation.bourse === 'oui' ? 'true' : 'false')
@@ -159,6 +198,8 @@ export function DocumentsWorkspace() {
         if (f) donnees.append('photo', f, f.name)
       }
       const etudiantId = await deposerDocuments(donnees)
+      // Le nouveau dossier devient celui du compte : il sera repris à la prochaine visite.
+      void lierDossier(etudiantId).catch(() => undefined)
       attendreLecture(etudiantId, Date.now())
     } catch (e) {
       setErreur(e instanceof Error ? e.message : "Tes documents n'ont pas pu être envoyés.")
@@ -198,7 +239,8 @@ export function DocumentsWorkspace() {
   } {
     const erreurFichier = erreursFichier[type]
     if (erreurFichier) return { statut: 'probleme', extrait: '', probleme: { message: erreurFichier } }
-    if (!fichiers[type]) return { statut: 'manquant', extrait: '', probleme: null }
+    const garde = enregistres && phase === 'resultat' && parType(type)
+    if (!fichiers[type] && !garde) return { statut: 'manquant', extrait: '', probleme: null }
     if (phase === 'analyse') return { statut: 'analyse', extrait: '', probleme: null }
     if (phase === 'saisie') return { statut: 'pret', extrait: '', probleme: null }
 
@@ -229,8 +271,32 @@ export function DocumentsWorkspace() {
   const pluriel = (n: number) => (n > 1 ? 's' : '')
   const aVerifier = lus.flatMap((d) => (d.anomalies ?? []).filter((a) => a.gravite === 'a_verifier'))
 
+  if (chargementCompte && situation) {
+    return (
+      <p className="flex items-center gap-2 text-muted-foreground">
+        <Loader2 className="size-5 motion-safe:animate-spin" aria-hidden="true" />
+        On regarde si tes documents sont déjà dans ton compte…
+      </p>
+    )
+  }
+
   return (
     <>
+      {enregistres && (
+        <section
+          aria-label="Documents gardés"
+          className="mb-6 flex items-start gap-3 rounded-3xl border border-success/50 bg-success-soft p-5"
+        >
+          <ShieldCheck className="mt-0.5 size-6 shrink-0 text-success" aria-hidden="true" />
+          <div>
+            <p className="font-semibold text-foreground">On a gardé tes documents de ta dernière visite</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Pas besoin de les redonner. Si l&apos;un d&apos;eux a changé (nouveau bail, nouvelle fiche de paie…),
+              remplace-le avec le bouton de sa carte, puis renvoie ton dossier pour qu&apos;il soit revérifié.
+            </p>
+          </div>
+        </section>
+      )}
       <section
         aria-label="Résumé de tes documents"
         className="flex flex-col gap-5 rounded-3xl border border-step-blue-border bg-step-blue-soft p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
@@ -292,7 +358,9 @@ export function DocumentsWorkspace() {
               key={definition.type}
               definition={definition}
               statut={statut}
-              nomFichier={fichiers[definition.type]?.name ?? null}
+              nomFichier={
+                fichiers[definition.type]?.name ?? (enregistres && parType(definition.type) ? 'Gardé dans ton compte' : null)
+              }
               extrait={extrait}
               probleme={probleme}
               onChoisir={() => choisirFichier(definition.type)}

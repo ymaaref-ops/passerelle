@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ShieldCheck } from 'lucide-react'
+import { MenuCompte } from '@/components/compte/menu-compte'
 
 export function SiteHeader() {
   return (
@@ -17,11 +18,13 @@ export function SiteHeader() {
           </span>
           Passerelle
         </Link>
-        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <ShieldCheck className="size-4 text-success" aria-hidden="true" />
-          <span className="hidden sm:inline">Tu valides toujours avant l&apos;envoi</span>
-          <span className="sm:hidden">Tu valides tout</span>
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="hidden items-center gap-1.5 text-sm text-muted-foreground md:flex">
+            <ShieldCheck className="size-4 text-success" aria-hidden="true" />
+            Tu valides toujours avant l&apos;envoi
+          </p>
+          <MenuCompte />
+        </div>
       </div>
     </header>
   )
