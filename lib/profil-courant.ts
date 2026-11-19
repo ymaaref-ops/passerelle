@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { lireMonCompte, sessionCourante, type MonCompte } from '@/lib/compte'
 import { lireEtat } from '@/lib/n8n'
+import { MONTANT_PAR_DEFAUT } from '@/lib/choix'
 
 /** Informations réelles de l'étudiant connecté, utilisées à l'étape Validation et dans les documents générés. */
 export interface ProfilCourant {
@@ -19,6 +20,49 @@ export interface ProfilCourant {
   alternant: boolean
   /** APL donnée par le simulateur CAF (null si pas encore de résultat). */
   apl: number | null
+  /** Offre de prêt la moins chère trouvée par le comparateur (null si pas encore de résultat). */
+  offre: OffreReelle | null
+}
+
+export interface OffreReelle {
+  banque: string
+  /** TAEG annoncé par la banque, en %. */
+  taux: number
+  duree: number
+  mensualite: number
+  montant: number
+  /** Total remboursé. */
+  coutTotal: number
+  /** Coût du crédit (intérêts et frais). */
+  interets: number
+}
+
+const DUREE_PRET = 60
+
+/** Meilleure offre (coût total le plus bas) dans la réponse de l'agent « comparateur-pret ». */
+function meilleureOffre(resultatAgent: unknown, montantParDefaut: number): OffreReelle | null {
+  const reponse = ((resultatAgent ?? {}) as Record<string, any>).reponse ?? {}
+  const lignes: Record<string, unknown>[] = Array.isArray(reponse.resultats) ? reponse.resultats : []
+  let meilleure: OffreReelle | null = null
+  for (const l of lignes) {
+    const mensualite = nombre(l.mensualite)
+    if (l.statut === 'echec' || mensualite === null) continue
+    const cout = nombre(l.cout_total_credit)
+    const du = nombre(l.montant_total_du)
+    const montant = du !== null && cout !== null ? Math.round(du - cout) : montantParDefaut
+    const interets = cout ?? Math.max(0, mensualite * DUREE_PRET - montant)
+    const offre: OffreReelle = {
+      banque: String(l.banque ?? 'Banque'),
+      taux: nombre(l.taeg) ?? 0,
+      duree: DUREE_PRET,
+      mensualite,
+      montant,
+      coutTotal: du ?? montant + interets,
+      interets,
+    }
+    if (!meilleure || offre.interets < meilleure.interets) meilleure = offre
+  }
+  return meilleure
 }
 
 function nombre(v: unknown): number | null {
@@ -27,7 +71,7 @@ function nombre(v: unknown): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-export function construireProfil(compte: MonCompte, apl: number | null): ProfilCourant {
+export function construireProfil(compte: MonCompte, apl: number | null, offre: OffreReelle | null = null): ProfilCourant {
   const p = compte.profil
   const paie = compte.documents.find((d) => d.type === 'fiche_paie')?.champs_extraits ?? {}
   const prenom = p?.prenom || compte.prenom || ''
@@ -47,6 +91,7 @@ export function construireProfil(compte: MonCompte, apl: number | null): ProfilC
     etablissement: p?.etablissement ?? null,
     alternant: /altern|apprenti/i.test(`${p?.formation ?? ''} ${p?.situation_pro ?? ''}`),
     apl,
+    offre,
   }
 }
 
@@ -62,10 +107,14 @@ export function useProfilCourant(): ProfilCourant | null {
         lireEtat()
           .then((etat) => {
             const v = etat.demarches?.find((d) => d.aide_code === 'apl')?.montant_estime
-            return v === null || v === undefined || v === '' ? null : Math.round(Number(v))
+            const pret = etat.demarches?.find((d) => d.aide_code === 'pret_garanti')
+            return {
+              apl: v === null || v === undefined || v === '' ? null : Math.round(Number(v)),
+              offre: pret ? meilleureOffre(pret.resultat_agent, MONTANT_PAR_DEFAUT) : null,
+            }
           })
-          .catch(() => null),
-      ]).then(([compte, apl]) => construireProfil(compte, apl))
+          .catch(() => ({ apl: null, offre: null })),
+      ]).then(([compte, etat]) => construireProfil(compte, etat.apl, etat.offre))
       cache.catch(() => {
         cache = null
       })
@@ -91,6 +140,7 @@ export function useProfilCourant(): ProfilCourant | null {
             etablissement: null,
             alternant: false,
             apl: null,
+            offre: null,
           })
       })
     return () => {

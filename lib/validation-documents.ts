@@ -1,7 +1,5 @@
 import type { ProfilCourant } from '@/lib/profil-courant'
 import {
-  MEILLEURE_OFFRE,
-  MONTANT_PRET,
   formaterEurosCentimes,
   formaterTaux,
 } from '@/lib/validation'
@@ -14,13 +12,16 @@ export interface DocumentPret {
   contenu: (p: ProfilCourant) => string
 }
 
+const EN_ATTENTE =
+  "Le comparateur de prêts n'a pas encore trouvé d'offre. Ce document sera prêt quand l'agent aura terminé la comparaison."
+
 function budgetMensuel(p: ProfilCourant): string {
-  const offre = MEILLEURE_OFFRE
+  const offre = p.offre
   const salaire = p.salaire ?? 0
   const apl = p.apl ?? 0
   const loyer = p.loyer ?? 0
   const revenus = salaire + apl
-  const charges = loyer + offre.mensualite
+  const charges = loyer + (offre?.mensualite ?? 0)
   return [
     `BUDGET MENSUEL – ${p.nomComplet}`,
     '',
@@ -33,7 +34,9 @@ function budgetMensuel(p: ProfilCourant): string {
     '',
     'CHARGES',
     `- Loyer, charges comprises : ${p.loyer != null ? formaterEurosCentimes(loyer) : 'à compléter dans ton profil'}`,
-    `- Mensualité du prêt étudiant (${offre.banque}) : ${formaterEurosCentimes(offre.mensualite)}`,
+    offre
+      ? `- Mensualité du prêt étudiant (${offre.banque}) : ${formaterEurosCentimes(offre.mensualite)}`
+      : '- Prêt étudiant : en attente du comparatif des banques',
     `Total des charges : ${formaterEurosCentimes(charges)}`,
     '',
     `RESTE POUR VIVRE : ${formaterEurosCentimes(revenus - charges)} par mois`,
@@ -42,10 +45,11 @@ function budgetMensuel(p: ProfilCourant): string {
   ].join('\n')
 }
 
-function planRemboursement(_p: ProfilCourant): string {
-  const offre = MEILLEURE_OFFRE
+function planRemboursement(p: ProfilCourant): string {
+  const offre = p.offre
+  if (!offre) return EN_ATTENTE
   const r = offre.taux / 100 / 12
-  let restant = MONTANT_PRET
+  let restant = offre.montant
   const lignes: string[] = []
   for (let mois = 1; mois <= offre.duree; mois += 1) {
     const interets = restant * r
@@ -58,10 +62,10 @@ function planRemboursement(_p: ProfilCourant): string {
   return [
     `PLAN DE REMBOURSEMENT – ${offre.banque}`,
     '',
-    `Montant emprunté : ${formaterEurosCentimes(MONTANT_PRET)}`,
-    `Taux annuel : ${formaterTaux(offre.taux)} sur ${offre.duree} mois`,
+    `Montant emprunté : ${formaterEurosCentimes(offre.montant)}`,
+    `TAEG annoncé : ${formaterTaux(offre.taux)} sur ${offre.duree} mois (plan indicatif, calculé avec ce taux)`,
     `Mensualité : ${formaterEurosCentimes(offre.mensualite)}`,
-    `Coût total : ${formaterEurosCentimes(offre.coutTotal)} (dont ${formaterEurosCentimes(offre.interets)} d'intérêts)`,
+    `Total remboursé : ${formaterEurosCentimes(offre.coutTotal)} (dont ${formaterEurosCentimes(offre.interets)} de coût du crédit)`,
     '',
     'Mois | Mensualité | Capital | Intérêts | Reste dû',
     ...lignes,
@@ -69,7 +73,8 @@ function planRemboursement(_p: ProfilCourant): string {
 }
 
 function lettreBanquier(p: ProfilCourant): string {
-  const offre = MEILLEURE_OFFRE
+  const offre = p.offre
+  if (!offre) return EN_ATTENTE
   const etudes = [p.formation, p.etablissement].filter(Boolean).join(' à ')
   const ressources = [
     p.salaire != null
@@ -90,7 +95,7 @@ function lettreBanquier(p: ProfilCourant): string {
     '',
     'Madame, Monsieur,',
     '',
-    `${etudes ? `Inscrit(e) en ${etudes}` : 'Étudiant(e)'}${p.alternant ? ' et en alternance' : ''}, je souhaite financer mes études grâce à un prêt étudiant de ${formaterEurosCentimes(MONTANT_PRET)}.`,
+    `${etudes ? `Inscrit(e) en ${etudes}` : 'Étudiant(e)'}${p.alternant ? ' et en alternance' : ''}, je souhaite financer mes études grâce à un prêt étudiant de ${formaterEurosCentimes(offre.montant)}.`,
     '',
     ressources,
     '',
