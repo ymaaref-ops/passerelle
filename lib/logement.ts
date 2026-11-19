@@ -78,3 +78,48 @@ export function texteReponse(reponse: unknown): string {
   }
   return ''
 }
+
+/**
+ * Secours : quand l'agent liste les logements en texte sans bloc JSON
+ * (« 1. Studio 11 m² Paris 11e - 520 € - 240 € d'aide CAF = 280 €/mois - dans ton budget - https://… »).
+ */
+export function logementsDepuisTexte(texte: string): Logement[] {
+  const resultat: Logement[] = []
+  for (const ligne of texte.split(/\n+/)) {
+    const m = /^\s*(\d+)[.)]\s+(.+)$/.exec(ligne)
+    if (!m) continue
+    const corps = m[2]
+    const url = /https?:\/\/\S+/.exec(corps)?.[0]?.replace(/[).,;]+$/, '')
+    if (!url) continue
+    const morceaux = corps.replace(url, '').split(/\s+[-–—]\s+/).map((x) => x.trim()).filter(Boolean)
+    const montant = (re: RegExp) => {
+      const r = re.exec(corps)
+      return r ? Number(r[1].replace(/\s/g, '').replace(',', '.')) : null
+    }
+    const titre = morceaux[0]?.replace(/\*\*/g, '') ?? 'Logement'
+    const surface = /(\d+(?:[.,]\d+)?)\s*m(?:²|2)/i.exec(titre)?.[1]
+    const cp = /\b(75|69|13|33|31|59|67|44|34|35|06)\d{3}\b/.exec(corps)?.[0]
+    const arrondissement = /Paris\s+(\d{1,2})\s*(?:e|er|ème|E)\b/i.exec(corps)
+    resultat.push({
+      rang: Number(m[1]),
+      url,
+      titre,
+      loyer_charges_comprises: montant(/^[^=]*?(\d[\d\s]*(?:[.,]\d+)?)\s*€(?!\s*d['’]aide)/),
+      aide_mensuelle: montant(/(\d[\d\s]*(?:[.,]\d+)?)\s*€\s*d['’]aide/i),
+      reste_a_payer: montant(/=\s*(\d[\d\s]*(?:[.,]\d+)?)\s*€/),
+      dans_budget: /hors budget/i.test(corps) ? false : /dans ton budget/i.test(corps) ? true : null,
+      surface_m2: surface ?? null,
+      adresse: cp
+        ? `${cp} ${/paris/i.test(corps) ? 'Paris' : ''}`.trim()
+        : arrondissement
+          ? `750${arrondissement[1].padStart(2, '0')} Paris`
+          : null,
+    })
+  }
+  return resultat
+}
+
+/** Enlève le gras Markdown (**…**) laissé par l'agent. */
+export function sansMarkdown(texte: string): string {
+  return texte.replace(/\*\*(.+?)\*\*/g, '$1').replace(/^#+\s*/gm, '')
+}

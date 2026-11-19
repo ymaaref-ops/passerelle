@@ -5,10 +5,13 @@ import Link from 'next/link'
 import { AlertTriangle, ArrowLeft, ChevronDown, ExternalLink, Home, Loader2, MapPin, Search, Send } from 'lucide-react'
 import { ChargementEtudiant } from '@/components/chargement-etudiant'
 import { MorpionEtudes } from '@/components/morpion-etudes'
+import { CarteGeo } from './carte-geo'
 import { buttonVariants } from '@/components/ui/button'
 import {
   lancerRecherche,
   lireRecherche,
+  logementsDepuisTexte,
+  sansMarkdown,
   repondreAgent,
   texteReponse,
   type EtatRecherche,
@@ -88,8 +91,17 @@ function Info({ children }: { children: React.ReactNode }) {
   )
 }
 
-function CarteLogement({ l }: { l: Logement }) {
-  const [ouvert, setOuvert] = useState(false)
+function CarteLogement({
+  l,
+  id,
+  ouvert,
+  onBasculer,
+}: {
+  l: Logement
+  id: string
+  ouvert: boolean
+  onBasculer: () => void
+}) {
   const etiquette = ETIQUETTES[l.eligibilite ?? ''] ?? null
   const alertes = liste(l.alertes)
   const raisons = liste(l.raisons)
@@ -101,7 +113,7 @@ function CarteLogement({ l }: { l: Logement }) {
   const site = siteDe(l)
 
   return (
-    <li className="flex flex-col overflow-hidden rounded-3xl bg-card shadow-carte">
+    <li id={id} className="flex scroll-mt-24 flex-col overflow-hidden rounded-3xl bg-card shadow-carte">
       <div className="relative h-44 bg-primary-soft">
         <PhotoLogement src={l.photo} titre={titre} />
         {etiquette && (
@@ -160,7 +172,7 @@ function CarteLogement({ l }: { l: Logement }) {
         <button
           type="button"
           aria-expanded={ouvert}
-          onClick={() => setOuvert((o) => !o)}
+          onClick={onBasculer}
           className="mt-auto flex items-center justify-between rounded-xl text-sm font-semibold text-step-blue outline-none hover:underline focus-visible:ring-4 focus-visible:ring-ring/30"
         >
           {ouvert ? 'Moins d’infos' : 'Plus d’infos'}
@@ -220,6 +232,12 @@ function CarteLogement({ l }: { l: Logement }) {
   )
 }
 
+function listeLogements(e: EtatRecherche | null): Logement[] {
+  if (!e) return []
+  if (e.logements?.length) return e.logements
+  return logementsDepuisTexte(texteReponse(e.reponse))
+}
+
 export function RechercheLogement() {
   const [ville, setVille] = useState('')
   const [budget, setBudget] = useState('')
@@ -233,21 +251,38 @@ export function RechercheLogement() {
   const [envoi, setEnvoi] = useState(false)
   const [reponse, setReponse] = useState('')
   const minuteur = useRef<number | null>(null)
+  const [ouverts, setOuverts] = useState<Set<number>>(new Set())
 
   useEffect(() => () => {
     if (minuteur.current) window.clearTimeout(minuteur.current)
   }, [])
 
+  // Logements du bloc JSON de l'agent, sinon ceux qu'il a listés en texte.
+  const trouves = listeLogements(etat)
   const termine = etat ? TERMINAUX.includes(etat.statut) : false
-  const enAttenteDeToi = etat?.statut === 'idle' && !etat.logements?.length
-  const enCours = sessionId !== null && !termine && !(etat?.statut === 'idle' && etat.logements?.length)
+  const enAttenteDeToi = etat?.statut === 'idle' && !trouves.length
+  const enCours = sessionId !== null && !termine && !(etat?.statut === 'idle' && trouves.length)
+
+  function basculer(i: number) {
+    setOuverts((o) => {
+      const suite = new Set(o)
+      if (suite.has(i)) suite.delete(i)
+      else suite.add(i)
+      return suite
+    })
+  }
+
+  function plusInfos(i: number) {
+    setOuverts((o) => new Set(o).add(i))
+    window.setTimeout(() => document.getElementById(`logement-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }
 
   function suivre(id: string) {
     minuteur.current = window.setTimeout(async () => {
       try {
         const e = await lireRecherche(id)
         setEtat(e)
-        if (TERMINAUX.includes(e.statut) || (e.statut === 'idle' && e.logements?.length)) return
+        if (TERMINAUX.includes(e.statut) || (e.statut === 'idle' && listeLogements(e).length)) return
       } catch {
         // On réessaie au prochain passage.
       }
@@ -299,7 +334,7 @@ export function RechercheLogement() {
   const peutChercher = ville.trim() !== '' && Number(budget) > 0 && !envoi && !enCours
   const champ =
     'h-12 rounded-xl border border-border bg-background px-4 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/30'
-  const texte = texteReponse(etat?.reponse)
+  const texte = sansMarkdown(texteReponse(etat?.reponse))
 
   return (
     <div className="flex flex-col gap-6">
@@ -432,16 +467,22 @@ export function RechercheLogement() {
             </div>
           )}
 
-          {etat?.logements && etat.logements.length > 0 && (
+          {trouves.length > 0 && (
             <>
               <h2 className="flex items-center gap-2 text-2xl font-bold text-primary">
                 <Home className="size-6" aria-hidden="true" />
-                {etat.logements.length} logement{etat.logements.length > 1 ? 's' : ''} trouvé
-                {etat.logements.length > 1 ? 's' : ''}
+                {trouves.length} logement{trouves.length > 1 ? 's' : ''} trouvé{trouves.length > 1 ? 's' : ''}
               </h2>
+              <CarteGeo logements={trouves} ville={ville} onPlusInfos={plusInfos} />
               <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {etat.logements.map((l, i) => (
-                  <CarteLogement key={l.url ?? i} l={l} />
+                {trouves.map((l, i) => (
+                  <CarteLogement
+                    key={l.url ?? i}
+                    l={l}
+                    id={`logement-${i}`}
+                    ouvert={ouverts.has(i)}
+                    onBasculer={() => basculer(i)}
+                  />
                 ))}
               </ul>
               <p className="text-sm text-muted-foreground">
@@ -457,7 +498,7 @@ export function RechercheLogement() {
             </>
           )}
 
-          {termine && !etat?.logements?.length && (
+          {termine && !trouves.length && (
             <p className="rounded-3xl bg-card shadow-carte p-5 text-foreground">
               {texte || "L'agent n'a pas trouvé de logement cette fois. Essaie avec un budget ou un quartier différent."}
             </p>
