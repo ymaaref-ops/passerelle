@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -20,11 +20,12 @@ import { SiteHeader } from '@/components/site-header'
 import { EMAIL_SUPPORT } from '@/lib/support'
 import { ContactSupport } from '@/components/contact-support'
 import { cn } from '@/lib/utils'
+import { getEtudiantId } from '@/lib/n8n'
 
-const MENU: { href: string; label: string; Icone: LucideIcon; actif?: string[] }[] = [
+const MENU: { href: string; label: string; Icone: LucideIcon; actif?: string[]; verrou?: boolean }[] = [
   { href: '/', label: 'Accueil', Icone: Home },
   { href: '/documents', label: 'Mes documents', Icone: FileText, actif: ['/situation', '/documents'] },
-  { href: '/aides', label: 'Mes aides', Icone: Gift },
+  { href: '/aides', label: 'Mes aides', Icone: Gift, verrou: true },
   { href: '/choix', label: 'Mes démarches', Icone: ListChecks, actif: ['/choix', '/validation'] },
   { href: '/agents', label: 'Suivi en direct', Icone: TrendingUp },
   { href: '/recherche-logement', label: 'Trouver un logement', Icone: Search },
@@ -50,7 +51,7 @@ function Logo() {
   )
 }
 
-function BarreLaterale({ pathname }: { pathname: string }) {
+function BarreLaterale({ pathname, dossier }: { pathname: string; dossier: boolean }) {
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-6 overflow-y-auto rounded-r-[2rem] bg-card px-4 py-6 shadow-carte lg:flex">
       <div className="px-2">
@@ -59,6 +60,22 @@ function BarreLaterale({ pathname }: { pathname: string }) {
       <nav aria-label="Menu principal" className="flex flex-col gap-1">
         {MENU.map((item) => {
           const actif = estActif(pathname, item)
+          if (item.verrou && !dossier && !actif) {
+            return (
+              <span
+                key={item.href}
+                aria-disabled="true"
+                title="Disponible après l'envoi de tes documents"
+                className="flex shrink-0 cursor-not-allowed flex-col justify-center rounded-2xl px-4 py-1.5 text-[0.95rem] font-semibold text-foreground opacity-50"
+              >
+                <span className="flex items-center gap-3">
+                  <item.Icone className="size-5 shrink-0" aria-hidden="true" />
+                  {item.label}
+                </span>
+                <span className="pl-8 text-xs font-normal text-muted-foreground">Après l&apos;envoi de tes documents</span>
+              </span>
+            )
+          }
           return (
             <Link
               key={item.href}
@@ -90,12 +107,26 @@ function BarreLaterale({ pathname }: { pathname: string }) {
 }
 
 /** Menu en haut sur mobile et tablette (le menu latéral n'apparaît qu'en grand écran). */
-function MenuMobile({ pathname }: { pathname: string }) {
+function MenuMobile({ pathname, dossier }: { pathname: string; dossier: boolean }) {
   return (
     <nav aria-label="Menu principal" className="-mx-4 overflow-x-auto px-4 pb-1 lg:hidden">
       <ul className="flex w-max gap-2">
         {MENU.map((item) => {
           const actif = estActif(pathname, item)
+          if (item.verrou && !dossier && !actif) {
+            return (
+              <li key={item.href}>
+                <span
+                  aria-disabled="true"
+                  title="Disponible après l'envoi de tes documents"
+                  className="flex h-10 cursor-not-allowed items-center gap-2 rounded-full bg-card px-4 text-sm font-semibold whitespace-nowrap text-foreground opacity-50 shadow-carte"
+                >
+                  <item.Icone className="size-4" aria-hidden="true" />
+                  {item.label}
+                </span>
+              </li>
+            )
+          }
           return (
             <li key={item.href}>
               <Link
@@ -124,11 +155,16 @@ function MenuMobile({ pathname }: { pathname: string }) {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const session = useSession()
+  // « Mes aides » n'a de sens qu'une fois les documents envoyés (dossier créé).
+  const [dossier, setDossier] = useState(true)
+  useEffect(() => {
+    setDossier(getEtudiantId() !== '')
+  }, [pathname])
 
   // Fenêtre de l'agent : plein écran, sans menu.
   if (pathname === '/fenetre-agent') return <main>{children}</main>
 
-  const publique = pathname === '/connexion' || (pathname === '/' && session === null)
+  const publique = pathname === '/connexion' || ((pathname === '/' || pathname === '/informations') && session === null)
   if (pathname === '/' && session === undefined) return <main className="min-h-dvh">{children}</main>
   if (publique) {
     return (
@@ -141,7 +177,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh">
-      <BarreLaterale pathname={pathname} />
+      <BarreLaterale pathname={pathname} dossier={dossier} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-col gap-3 px-4 pt-4 sm:px-6 lg:px-10 lg:pt-6">
           <div className="flex items-center justify-between gap-3">
@@ -165,7 +201,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <MenuCompte />
             </div>
           </div>
-          <MenuMobile pathname={pathname} />
+          <MenuMobile pathname={pathname} dossier={dossier} />
         </header>
         <main className="flex-1 pb-10">{children}</main>
       </div>

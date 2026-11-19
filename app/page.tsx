@@ -38,8 +38,13 @@ function Presentation() {
           </Link>
         </div>
       </section>
-      <footer className="border-t border-border bg-card py-6 text-center text-sm text-muted-foreground">
-        Passerelle · Données fictives de démonstration
+      <footer className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
+        <span>Passerelle · Données fictives de démonstration</span>
+        <Link href="/informations#mentions-legales" className="hover:text-foreground hover:underline">Mentions légales</Link>
+        <Link href="/informations#cgu" className="hover:text-foreground hover:underline">CGU</Link>
+        <Link href="/informations#confidentialite" className="hover:text-foreground hover:underline">
+          Politique de confidentialité
+        </Link>
       </footer>
     </>
   )

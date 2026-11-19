@@ -57,11 +57,25 @@ export const DOCUMENTS_REQUIS: DefinitionDocument[] = [
  * - avis d'imposition des parents : facultatif, nécessaire pour simuler la bourse Crous ;
  * - contrat d'alternance : seulement en alternance, en facultatif (utile pour Mobili-Jeune).
  */
-export function documentsPour(situation: { logement: string; activite: string; bourse?: string }): DefinitionDocument[] {
+export function documentsPour(
+  situation: { logement: string; activite: string; bourse?: string },
+  /** Réponses du questionnaire utiles ici : bail déjà signé ? résidence Crous ? */
+  reponses: { bail_signe?: unknown; type_logement?: unknown } = {},
+): DefinitionDocument[] {
   return DOCUMENTS_REQUIS.flatMap((d): DefinitionDocument[] => {
     switch (d.type) {
-      case 'bail':
-        return situation.logement === 'locataire' ? [d] : []
+      case 'bail': {
+        if (situation.logement !== 'locataire') return []
+        const crous = reponses.type_logement === 'crous'
+        const base = crous
+          ? { ...d, titre: 'Bail ou contrat Crous', description: 'Ton contrat de location ou ton contrat de séjour Crous, avec le montant du loyer.' }
+          : d
+        // Pas encore signé (cas Visale) : on ne bloque pas, il s'ajoutera dès la signature.
+        if (reponses.bail_signe === false) {
+          return [{ ...base, facultatif: true, description: `${base.description} Tu n'as pas encore signé : ajoute-le dès la signature, tu peux continuer sans pour l'instant.` }]
+        }
+        return [base]
+      }
       case 'fiche_paie':
         // Obligatoire seulement en alternance ; facultative sinon (job étudiant, stage, autre revenu…).
         return situation.activite === 'alternance'
@@ -79,7 +93,7 @@ export function documentsPour(situation: { logement: string; activite: string; b
           {
             ...d,
             facultatif: true,
-            description: `${d.description} Nécessaire pour simuler ta bourse Crous, même si tu n'es pas encore boursier.`,
+            description: `${d.description} Recommandé pour calculer ta bourse Crous, même si tu n'es pas encore boursier.`,
           },
         ]
       case 'contrat_alternance':

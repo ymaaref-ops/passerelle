@@ -23,7 +23,7 @@ import { enregistrerQuestionnaireLocal, lireQuestionnaire } from '@/lib/question
 const ACTIVITES: { valeur: Activite; label: string; statut: string }[] = [
   { valeur: 'alternance', label: 'Alternance', statut: 'alternant' },
   { valeur: 'job', label: 'Job étudiant', statut: 'salarie' },
-  { valeur: 'aucune', label: "Pas d'activité", statut: 'etudiant' },
+  { valeur: 'aucune', label: "Pas d'activité (études à temps plein)", statut: 'etudiant' },
 ]
 import { cn } from '@/lib/utils'
 

@@ -1,5 +1,7 @@
 'use client'
 
+import { lireQuestionnaire } from '@/lib/questionnaire'
+
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -87,6 +89,7 @@ export function DocumentsWorkspace() {
   const [erreursFichier, setErreursFichier] = useState<Partial<Record<DocumentRequis, string>>>({})
   const router = useRouter()
   const [situation, setSituation] = useState<Situation | null>(null)
+  const [reponsesQuestionnaire, setReponsesQuestionnaire] = useState<{ bail_signe?: unknown; type_logement?: unknown }>({})
   const [accord, setAccord] = useState(false)
   const [phase, setPhase] = useState<Phase>('saisie')
   const [erreur, setErreur] = useState<string | null>(null)
@@ -108,11 +111,12 @@ export function DocumentsWorkspace() {
   // Les documents demandés dépendent de la situation : sans elle, on repasse par l'étape Situation.
   useEffect(() => {
     const s = lireSituation()
+    setReponsesQuestionnaire(lireQuestionnaire()?.reponses ?? {})
     if (s) setSituation(s)
     else router.replace('/situation')
   }, [router])
 
-  const DOCUMENTS_REQUIS: DefinitionDocument[] = situation ? documentsPour(situation) : []
+  const DOCUMENTS_REQUIS: DefinitionDocument[] = situation ? documentsPour(situation, reponsesQuestionnaire) : []
   // Seuls les documents obligatoires bloquent la suite ; les facultatifs sont envoyés s'ils sont ajoutés.
   const OBLIGATOIRES = DOCUMENTS_REQUIS.filter((d) => !d.facultatif)
 

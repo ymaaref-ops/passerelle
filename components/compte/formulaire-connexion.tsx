@@ -22,6 +22,7 @@ export function FormulaireConnexion() {
   const [prenom, setPrenom] = useState('')
   const [email, setEmail] = useState('')
   const [motDePasse, setMotDePasse] = useState('')
+  const [accepte, setAccepte] = useState(false)
   const [enCours, setEnCours] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
   const [aConfirmer, setAConfirmer] = useState(false)
@@ -140,6 +141,11 @@ export function FormulaireConnexion() {
             role="tab"
             aria-selected={mode === valeur}
             onClick={() => {
+              if (valeur !== mode) {
+                setEmail('')
+                setMotDePasse('')
+                setAccepte(false)
+              }
               setMode(valeur)
               setErreur(null)
             }}
@@ -182,14 +188,37 @@ export function FormulaireConnexion() {
           <input
             required
             type="password"
-            minLength={6}
+            minLength={mode === 'creation' ? 8 : undefined}
             autoComplete={mode === 'creation' ? 'new-password' : 'current-password'}
             value={motDePasse}
             onChange={(e) => setMotDePasse(e.target.value)}
             className={CHAMP}
           />
-          {mode === 'creation' && <span className="text-sm text-muted-foreground">6 caractères minimum.</span>}
+          {mode === 'creation' && <span className="text-sm text-muted-foreground">8 caractères minimum.</span>}
         </label>
+
+        {mode === 'creation' && (
+          <label className="flex items-start gap-2 text-sm text-foreground">
+            <input
+              type="checkbox"
+              required
+              checked={accepte}
+              onChange={(e) => setAccepte(e.target.checked)}
+              className="mt-0.5 size-4 shrink-0 accent-primary"
+            />
+            <span>
+              J&apos;accepte la{' '}
+              <a href="/informations#confidentialite" target="_blank" className="font-semibold text-primary underline-offset-4 hover:underline">
+                politique de confidentialité
+              </a>{' '}
+              et les{' '}
+              <a href="/informations#cgu" target="_blank" className="font-semibold text-primary underline-offset-4 hover:underline">
+                conditions générales d&apos;utilisation
+              </a>
+              .
+            </span>
+          </label>
+        )}
 
         {erreur && (
           <p role="alert" className="text-sm font-medium text-danger">
@@ -199,7 +228,7 @@ export function FormulaireConnexion() {
 
         <button
           type="submit"
-          disabled={enCours}
+          disabled={enCours || (mode === 'creation' && !accepte)}
           className={cn(buttonVariants({ size: 'lg' }), 'h-12 gap-2 rounded-2xl text-base font-semibold')}
         >
           {enCours ? (

@@ -56,7 +56,7 @@ const classeChamp =
 const ACTIVITE: Option<Activite>[] = [
   { valeur: 'alternance', label: 'Alternance' },
   { valeur: 'job', label: 'Job étudiant' },
-  { valeur: 'aucune', label: "Pas d'activité" },
+  { valeur: 'aucune', label: "Pas d'activité (études à temps plein)" },
 ]
 
 const BOURSE: Option<Bourse>[] = [

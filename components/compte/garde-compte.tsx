@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { jetonValide, sessionDepuisLien, synchroniserCompte } from '@/lib/compte'
 
 /** Pages accessibles sans compte. */
-const PUBLIQUES = ['/', '/connexion']
+const PUBLIQUES = ['/', '/connexion', '/informations']
 
 /** Toutes les étapes demandent d'être connecté : sinon on passe par la page de connexion. */
 export function GardeCompte({ children }: { children: ReactNode }) {
