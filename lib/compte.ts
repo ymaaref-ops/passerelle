@@ -28,7 +28,9 @@ export interface ProfilEtudiant {
   nom: string | null
   prenom: string | null
   date_naissance: string | null
+  lieu_naissance: string | null
   nationalite: string | null
+  telephone: string | null
   etablissement: string | null
   formation: string | null
   adresse_logement: string | null
@@ -247,6 +249,13 @@ async function appelCompte<T>(corps: Record<string, unknown>): Promise<T> {
 /** Le compte et les documents de son dernier dossier. */
 export function lireMonCompte(): Promise<MonCompte> {
   return appelCompte<MonCompte>({ action: 'moi' })
+}
+
+/** Enregistre les informations remplies ou corrigées dans le profil (lues ensuite par les agents). */
+export function enregistrerProfil(
+  profil: Partial<Record<keyof ProfilEtudiant, string | number | boolean | null>>,
+): Promise<{ ok: boolean; etudiant_id: string; profil: ProfilEtudiant | null }> {
+  return appelCompte({ action: 'enregistrer_profil', profil })
 }
 
 /** Relie le dossier qui vient d'être déposé au compte. */
