@@ -1,5 +1,7 @@
 'use client'
 
+import { BoutonPrecedent } from '@/components/bouton-precedent'
+
 import { useEffect, useRef, useState } from 'react'
 import { ShieldCheck } from 'lucide-react'
 import {
@@ -74,6 +76,7 @@ export function ValidationPage() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 md:py-12">
+      <BoutonPrecedent href="/agents" label="Précédent : tes agents" />
       <header className={cn('flex flex-col gap-6 rounded-3xl border p-6 sm:p-8', COULEUR.card)}>
         <div className="max-w-2xl">
           <p className={cn('text-sm font-semibold', COULEUR.text)}>Étape 6 sur 6</p>

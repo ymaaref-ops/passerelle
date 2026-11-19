@@ -1,3 +1,4 @@
+import { BoutonPrecedent } from '@/components/bouton-precedent'
 import type { Metadata } from 'next'
 import { AidesBanner } from '@/components/aides/aides-banner'
 import { AidesSelonSituation } from '@/components/aides/aides-selon-situation'
@@ -20,6 +21,7 @@ export default function AidesPage() {
   return (
     <GardeDocuments>
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:py-12">
+      <BoutonPrecedent href="/documents" label="Précédent : tes documents" className="mb-6" />
       <header className="mb-8 max-w-2xl">
         <p className={cn('text-sm font-semibold', STEP_COLORS.violet.text)}>Étape 3 sur 6</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-primary sm:text-4xl">

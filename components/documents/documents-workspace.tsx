@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { AlertTriangle, ArrowRight, CheckCircle2, Loader2, Send, ShieldCheck } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { CameraDialog } from '@/components/documents/camera-dialog'
+import { BoutonPrecedent } from '@/components/bouton-precedent'
 import { DocumentCard } from '@/components/documents/document-card'
 import type { StatutDocumentUI } from '@/components/documents/statut-pastille'
 import { etudiantCourant } from '@/lib/data'
@@ -398,6 +399,36 @@ export function DocumentsWorkspace() {
           Tes {DOCUMENTS_REQUIS.length} documents sont vérifiés.
         </p>
       )}
+
+      <nav aria-label="Navigation entre les étapes" className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <BoutonPrecedent href="/situation" label="Précédent : ta situation" />
+        {dossierComplet ? (
+          <Link
+            href="/aides"
+            className={cn(buttonVariants({ size: 'lg' }), 'h-12 gap-2 rounded-2xl px-6 text-base font-semibold')}
+          >
+            Voir mes aides
+            <ArrowRight className="size-5" aria-hidden="true" />
+          </Link>
+        ) : (
+          <div className="flex flex-col gap-1 sm:items-end">
+            <button
+              type="button"
+              disabled
+              className={cn(
+                buttonVariants({ size: 'lg' }),
+                'h-12 cursor-not-allowed gap-2 rounded-2xl bg-muted px-6 text-base font-semibold text-muted-foreground',
+              )}
+            >
+              Voir mes aides
+              <ArrowRight className="size-5" aria-hidden="true" />
+            </button>
+            <p className="text-sm text-muted-foreground">
+              {phase === 'analyse' ? 'Vérification en cours…' : 'Envoie tes documents vérifiés pour continuer.'}
+            </p>
+          </div>
+        )}
+      </nav>
 
       <CameraDialog
         titre={cameraPour ? (DOCUMENTS_REQUIS.find((d) => d.type === cameraPour)?.titre ?? null) : null}

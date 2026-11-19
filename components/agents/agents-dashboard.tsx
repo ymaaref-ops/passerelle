@@ -1,5 +1,7 @@
 'use client'
 
+import { BoutonPrecedent } from '@/components/bouton-precedent'
+
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
@@ -54,6 +56,7 @@ export function AgentsDashboard() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 md:py-12">
+      <BoutonPrecedent href="/choix" label="Précédent : ton choix" />
       <NotificationAgents agents={agents} />
 
       <header className={cn('flex flex-col gap-6 rounded-3xl border p-6 sm:p-8', COULEUR.card)}>
