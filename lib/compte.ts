@@ -2,7 +2,8 @@
  * Compte Passerelle (Supabase Auth, appelé directement en HTTP).
  * La session est gardée dans le navigateur ; la fonction « compte » relie le compte à son dossier de documents.
  */
-import type { DocumentN8n } from '@/lib/n8n'
+import { oublierEtudiantId, setEtudiantId, type DocumentN8n } from '@/lib/n8n'
+import { lireSituation, type Situation } from '@/lib/session'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://hnziztstifpipxrgdnop.supabase.co'
 /** Clé publique (publishable) : prévue pour être utilisée dans le navigateur. */
@@ -42,13 +43,36 @@ export interface ProfilEtudiant {
   boursier: boolean | null
 }
 
+export interface EligibiliteReelle {
+  aide_code: string
+  eligibilite: 'eligible' | 'peut_etre' | 'non_concerne'
+  raison_eligibilite: string | null
+  montant_estime: number | string | null
+}
+
 export interface MonCompte {
   email: string | null
   prenom: string | null
   inscrit_le: string | null
   etudiant_id: string | null
+  situation: Situation | null
   profil: ProfilEtudiant | null
   documents: DocumentEnregistre[]
+  eligibilite: EligibiliteReelle[]
+}
+
+const CLE_SYNCHRO = 'passerelle_compte_synchro'
+
+/** Efface ce qui appartient à l'étudiant précédent dans ce navigateur. */
+function reinitialiserLocal() {
+  oublierEtudiantId()
+  try {
+    window.sessionStorage.removeItem('passerelle_documents_valides')
+    window.sessionStorage.removeItem('passerelle_situation')
+    window.sessionStorage.removeItem(CLE_SYNCHRO)
+  } catch {
+    // rien
+  }
 }
 
 export interface PhotoEnregistree {
@@ -145,6 +169,7 @@ export async function creerCompte(prenom: string, email: string, motDePasse: str
   })
   if (statut >= 400) throw new Error(messageErreur(r, statut))
   if (!r.access_token) return 'confirmer'
+  reinitialiserLocal()
   enregistrerSession(versSession(r, prenom))
   return 'connecte'
 }
@@ -185,6 +210,7 @@ export async function sessionDepuisLien(): Promise<'connecte' | { erreur: string
   })
   if (!reponse.ok) return { erreur: "Le lien de confirmation n'a pas marché. Connecte-toi." }
   const user = (await reponse.json()) as { email?: string; user_metadata?: { prenom?: string } }
+  reinitialiserLocal()
   enregistrerSession({
     access_token: access,
     refresh_token: refresh,
@@ -198,6 +224,7 @@ export async function sessionDepuisLien(): Promise<'connecte' | { erreur: string
 export async function seConnecter(email: string, motDePasse: string): Promise<void> {
   const { r, statut } = await appelAuth('token?grant_type=password', { email, password: motDePasse })
   if (statut >= 400 || !r.access_token) throw new Error(messageErreur(r, statut))
+  reinitialiserLocal()
   enregistrerSession(versSession(r))
 }
 
@@ -209,13 +236,7 @@ export function seDeconnecter(): void {
       headers: { apikey: CLE_PUBLIQUE, Authorization: `Bearer ${s.access_token}` },
     }).catch(() => undefined)
   }
-  try {
-    window.localStorage.removeItem('passerelle_etudiant_id')
-    window.sessionStorage.removeItem('passerelle_documents_valides')
-    window.sessionStorage.removeItem('passerelle_situation')
-  } catch {
-    // rien
-  }
+  reinitialiserLocal()
   enregistrerSession(null)
 }
 
@@ -249,6 +270,34 @@ async function appelCompte<T>(corps: Record<string, unknown>): Promise<T> {
 /** Le compte et les documents de son dernier dossier. */
 export function lireMonCompte(): Promise<MonCompte> {
   return appelCompte<MonCompte>({ action: 'moi' })
+}
+
+/**
+ * Une fois par visite : reprend le dossier et la situation du compte dans ce navigateur,
+ * pour que les étapes et les agents travaillent toujours sur le dossier de l'étudiant connecté.
+ */
+export async function synchroniserCompte(): Promise<void> {
+  try {
+    if (window.sessionStorage.getItem(CLE_SYNCHRO) === 'oui') return
+  } catch {
+    // On synchronise quand même.
+  }
+  const compte = await lireMonCompte()
+  if (compte.etudiant_id) setEtudiantId(compte.etudiant_id)
+  else oublierEtudiantId()
+  try {
+    if (compte.situation && !lireSituation()) {
+      window.sessionStorage.setItem('passerelle_situation', JSON.stringify(compte.situation))
+    }
+    window.sessionStorage.setItem(CLE_SYNCHRO, 'oui')
+  } catch {
+    // Stockage indisponible.
+  }
+}
+
+/** Garde la situation dans le compte, pour ne pas la redemander à la prochaine visite. */
+export function enregistrerSituationCompte(situation: Situation): Promise<unknown> {
+  return appelCompte({ action: 'enregistrer_situation', situation })
 }
 
 /** Enregistre les informations remplies ou corrigées dans le profil (lues ensuite par les agents). */

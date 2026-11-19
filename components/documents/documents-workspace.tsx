@@ -9,7 +9,6 @@ import { CameraDialog } from '@/components/documents/camera-dialog'
 import { BoutonPrecedent } from '@/components/bouton-precedent'
 import { DocumentCard } from '@/components/documents/document-card'
 import type { StatutDocumentUI } from '@/components/documents/statut-pastille'
-import { etudiantCourant } from '@/lib/data'
 import { documentsPour, verifierFichier, type DefinitionDocument, type DocumentRequis } from '@/lib/documents-demo'
 import { deposerDocuments, lireEtatEtudiant, setEtudiantId, type DocumentN8n } from '@/lib/n8n'
 import { lierDossier, lireMonCompte, lirePhotos, photoVersFichier, sessionCourante } from '@/lib/compte'
@@ -76,6 +75,7 @@ export function DocumentsWorkspace() {
   // Documents gardés dans le compte depuis une visite précédente.
   const [enregistres, setEnregistres] = useState(false)
   const [chargementCompte, setChargementCompte] = useState(true)
+  const identite = useRef<{ prenom: string; nom: string }>({ prenom: '', nom: '' })
 
   useEffect(() => () => {
     if (sondage.current) window.clearTimeout(sondage.current)
@@ -95,7 +95,12 @@ export function DocumentsWorkspace() {
     let actif = true
     lireMonCompte()
       .then(async (compte) => {
-        if (!actif || !compte.etudiant_id || compte.documents.length === 0) return
+        if (!actif) return
+        identite.current = {
+          prenom: compte.profil?.prenom || compte.prenom || '',
+          nom: compte.profil?.nom || '',
+        }
+        if (!compte.etudiant_id || compte.documents.length === 0) return
         setEtudiantId(compte.etudiant_id)
         setLus(compte.documents)
         setEnregistres(true)
@@ -184,8 +189,9 @@ export function DocumentsWorkspace() {
     try {
       const donnees = new FormData()
       donnees.append('consentement', 'true')
-      donnees.append('prenom', etudiantCourant.prenom)
-      donnees.append('nom', etudiantCourant.nom)
+      // Prénom et nom du compte ; la pièce d'identité les corrige ensuite si besoin.
+      donnees.append('prenom', identite.current.prenom || sessionCourante()?.prenom || '')
+      donnees.append('nom', identite.current.nom || '')
       donnees.append('aides', 'apl')
       const session = sessionCourante()
       if (session?.email) donnees.append('email', session.email)

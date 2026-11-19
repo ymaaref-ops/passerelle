@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { jetonValide, sessionDepuisLien } from '@/lib/compte'
+import { jetonValide, sessionDepuisLien, synchroniserCompte } from '@/lib/compte'
 
 /** Pages accessibles sans compte. */
 const PUBLIQUES = ['/', '/connexion']
@@ -30,10 +30,14 @@ export function GardeCompte({ children }: { children: ReactNode }) {
       return
     }
     setAutorise(false)
-    jetonValide().then((jeton) => {
+    jetonValide().then(async (jeton) => {
       if (!actif) return
-      if (jeton) setAutorise(true)
-      else router.replace(`/connexion?suite=${encodeURIComponent(pathname)}`)
+      if (!jeton) {
+        router.replace(`/connexion?suite=${encodeURIComponent(pathname)}`)
+        return
+      }
+      await synchroniserCompte().catch(() => undefined)
+      if (actif) setAutorise(true)
     })
     return () => {
       actif = false

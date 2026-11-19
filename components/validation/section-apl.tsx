@@ -2,11 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { Check, ChevronDown, Home, Info, Pencil } from 'lucide-react'
-import {
-  DEMARCHES,
-  INFOS_APL_INITIALES,
-  type DemarcheId,
-} from '@/lib/validation'
+import { DEMARCHES, infosApl, type InfoApl, type DemarcheId } from '@/lib/validation'
+import { useProfilCourant } from '@/lib/profil-courant'
 import { lireEtat } from '@/lib/n8n'
 import { BoutonEnvoi } from './bouton-envoi'
 
@@ -39,11 +36,21 @@ function useAplN8n(): { montant: number | null | undefined; remarques: string | 
 export function SectionApl({ envoyeeLe, onEnvoyer }: SectionAplProps) {
   const { montant: montantApl, remarques } = useAplN8n()
   const texteMontant = montantApl === undefined ? '…' : montantApl === null ? '—' : `${montantApl} €/mois`
-  const [infos, setInfos] = useState(INFOS_APL_INITIALES)
+  const profil = useProfilCourant()
+  const [initiales, setInitiales] = useState<InfoApl[]>([])
+  const [infos, setInfos] = useState<InfoApl[]>([])
   const [enEdition, setEnEdition] = useState<string | null>(null)
   const [brouillon, setBrouillon] = useState('')
 
-  const modifiees = infos.some((info, i) => info.valeur !== INFOS_APL_INITIALES[i].valeur)
+  // Les lignes viennent du profil réel de l'étudiant (documents + profil complété).
+  useEffect(() => {
+    if (!profil) return
+    const lignes = infosApl(profil)
+    setInitiales(lignes)
+    setInfos(lignes)
+  }, [profil])
+
+  const modifiees = infos.some((info, i) => info.valeur !== initiales[i]?.valeur)
 
   function modifier(id: string, valeur: string) {
     setEnEdition(id)
@@ -87,6 +94,7 @@ export function SectionApl({ envoyeeLe, onEnvoyer }: SectionAplProps) {
             Vérifie chaque ligne. Si quelque chose est faux, corrige-le avant d&apos;envoyer.
           </p>
 
+          {!profil && <p className="mt-4 text-sm text-muted-foreground">Chargement de tes informations…</p>}
           <ul className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
             {infos.map((info) => {
               const idChamp = `apl-info-${info.id}`

@@ -1,5 +1,6 @@
 import { Check, CircleAlert, Mail, Paperclip } from 'lucide-react'
-import { ETUDIANT, formaterDateHeure, type RecapMail } from '@/lib/validation'
+import { formaterDateHeure, type RecapMail } from '@/lib/validation'
+import { sessionCourante } from '@/lib/compte'
 
 export type StatutMail = 'envoi' | 'ok' | 'erreur'
 
@@ -86,7 +87,7 @@ export function ConfirmationEnvoi({ recap, statutMail, onReessayer }: Confirmati
         </dl>
 
         <div className="flex flex-col gap-4 px-5 py-5 text-base text-foreground">
-          <p>Bonjour {ETUDIANT.prenom},</p>
+          <p>Bonjour{sessionCourante()?.prenom ? ` ${sessionCourante()?.prenom}` : ''},</p>
           <p>Voici ce que tu as envoyé avec Passerelle :</p>
 
           <ul className="flex flex-col gap-3">

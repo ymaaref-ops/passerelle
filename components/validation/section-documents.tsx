@@ -2,9 +2,10 @@
 
 import { Download, FileText } from 'lucide-react'
 import { DOCUMENTS_PRETS, type DocumentPret } from '@/lib/validation-documents'
+import { useProfilCourant, type ProfilCourant } from '@/lib/profil-courant'
 
-function telecharger(document: DocumentPret) {
-  const blob = new Blob([document.contenu()], { type: 'text/plain;charset=utf-8' })
+function telecharger(document: DocumentPret, profil: ProfilCourant) {
+  const blob = new Blob([document.contenu(profil)], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const lien = window.document.createElement('a')
   lien.href = url
@@ -14,6 +15,7 @@ function telecharger(document: DocumentPret) {
 }
 
 export function SectionDocuments() {
+  const profil = useProfilCourant()
   return (
     <section aria-labelledby="titre-documents" className="rounded-3xl border border-border bg-card p-5 sm:p-6">
       <div className="flex items-center gap-4">
@@ -46,7 +48,8 @@ export function SectionDocuments() {
             </div>
             <button
               type="button"
-              onClick={() => telecharger(document)}
+              disabled={!profil}
+              onClick={() => profil && telecharger(document, profil)}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border bg-card px-5 text-sm font-semibold text-primary outline-none transition-colors hover:bg-primary-soft focus-visible:ring-4 focus-visible:ring-ring/30"
             >
               <Download className="size-4" aria-hidden="true" />

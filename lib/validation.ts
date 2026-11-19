@@ -1,4 +1,3 @@
-import { etudiants } from '@/lib/data'
 import { MONTANT_PAR_DEFAUT } from '@/lib/choix'
 
 export type DemarcheId = 'apl' | 'banque-postale' | 'societe-generale' | 'cic'
@@ -45,12 +44,7 @@ export const DEMARCHES: Record<DemarcheId, DemarcheInfo> = {
   },
 }
 
-export const ETUDIANT = etudiants[0]
-export const EMAIL_ETUDIANT = 'lea.martin@exemple.fr'
-
 /* ---------------------------------- APL ---------------------------------- */
-
-export const APL_ESTIMEE = 210
 
 export interface InfoApl {
   id: string
@@ -58,13 +52,36 @@ export interface InfoApl {
   valeur: string
 }
 
-export const INFOS_APL_INITIALES: InfoApl[] = [
-  { id: 'adresse', libelle: 'Adresse du logement', valeur: ETUDIANT.adresse },
-  { id: 'loyer', libelle: 'Loyer réel', valeur: '650 € par mois, charges comprises' },
-  { id: 'logement', libelle: 'Type de logement', valeur: 'Meublé' },
-  { id: 'foyer', libelle: 'Situation', valeur: 'Seule dans le logement' },
-  { id: 'salaire', libelle: "Salaire d'alternance", valeur: '1 100 € par mois' },
-]
+const aRenseigner = 'À compléter dans ton profil'
+
+/** Informations envoyées au simulateur de la CAF, à partir du profil de l'étudiant. */
+export function infosApl(p: {
+  adresse: string | null
+  loyer: number | null
+  typeLogement: string | null
+  salaire: number | null
+  ressources12Mois: number | null
+}): InfoApl[] {
+  return [
+    { id: 'adresse', libelle: 'Adresse du logement', valeur: p.adresse || aRenseigner },
+    {
+      id: 'loyer',
+      libelle: 'Loyer',
+      valeur: p.loyer != null ? `${p.loyer.toLocaleString('fr-FR')} € par mois, charges comprises` : aRenseigner,
+    },
+    { id: 'logement', libelle: 'Type de logement', valeur: p.typeLogement || aRenseigner },
+    {
+      id: 'salaire',
+      libelle: 'Salaire net mensuel',
+      valeur: p.salaire != null ? `${p.salaire.toLocaleString('fr-FR')} € par mois` : 'Aucun salaire déclaré',
+    },
+    {
+      id: 'ressources',
+      libelle: 'Revenus des 12 derniers mois',
+      valeur: p.ressources12Mois != null ? `${p.ressources12Mois.toLocaleString('fr-FR')} €` : aRenseigner,
+    },
+  ]
+}
 
 /* ---------------------------------- Prêt --------------------------------- */
 
@@ -157,7 +174,11 @@ export interface RecapMail {
   piecesJointes: string[]
 }
 
-export function construireRecapMail(envois: EnvoisParDemarche, piecesJointes: string[]): RecapMail {
+export function construireRecapMail(
+  envois: EnvoisParDemarche,
+  piecesJointes: string[],
+  destinataire: string,
+): RecapMail {
   const envoyees = (Object.keys(DEMARCHES) as DemarcheId[])
     .filter((id) => envois[id])
     .map((id) => ({
@@ -167,7 +188,7 @@ export function construireRecapMail(envois: EnvoisParDemarche, piecesJointes: st
     }))
     .sort((a, b) => a.envoyeeLe.localeCompare(b.envoyeeLe))
 
-  return { destinataire: EMAIL_ETUDIANT, objet: OBJET_MAIL_RECAP, envoyees, piecesJointes }
+  return { destinataire, objet: OBJET_MAIL_RECAP, envoyees, piecesJointes }
 }
 
 /**

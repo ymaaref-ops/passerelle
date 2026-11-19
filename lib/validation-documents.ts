@@ -1,6 +1,5 @@
+import type { ProfilCourant } from '@/lib/profil-courant'
 import {
-  APL_ESTIMEE,
-  ETUDIANT,
   MEILLEURE_OFFRE,
   MONTANT_PRET,
   formaterEurosCentimes,
@@ -12,37 +11,38 @@ export interface DocumentPret {
   titre: string
   description: string
   fichier: string
-  contenu: () => string
+  contenu: (p: ProfilCourant) => string
 }
 
-const NOM_COMPLET = `${ETUDIANT.prenom} ${ETUDIANT.nom}`
-const LOYER = 650
-const SALAIRE = 1100
-
-function budgetMensuel(): string {
+function budgetMensuel(p: ProfilCourant): string {
   const offre = MEILLEURE_OFFRE
-  const revenus = SALAIRE + APL_ESTIMEE
-  const charges = LOYER + offre.mensualite
+  const salaire = p.salaire ?? 0
+  const apl = p.apl ?? 0
+  const loyer = p.loyer ?? 0
+  const revenus = salaire + apl
+  const charges = loyer + offre.mensualite
   return [
-    `BUDGET MENSUEL – ${NOM_COMPLET}`,
+    `BUDGET MENSUEL – ${p.nomComplet}`,
     '',
     'REVENUS',
-    `- Salaire d'alternance : ${formaterEurosCentimes(SALAIRE)}`,
-    `- APL estimée : ${formaterEurosCentimes(APL_ESTIMEE)}`,
+    `- Salaire net : ${formaterEurosCentimes(salaire)}`,
+    p.apl != null
+      ? `- APL (simulateur CAF) : ${formaterEurosCentimes(apl)}`
+      : "- APL : pas encore de résultat de la simulation CAF",
     `Total des revenus : ${formaterEurosCentimes(revenus)}`,
     '',
     'CHARGES',
-    `- Loyer, charges comprises : ${formaterEurosCentimes(LOYER)}`,
+    `- Loyer, charges comprises : ${p.loyer != null ? formaterEurosCentimes(loyer) : 'à compléter dans ton profil'}`,
     `- Mensualité du prêt étudiant (${offre.banque}) : ${formaterEurosCentimes(offre.mensualite)}`,
     `Total des charges : ${formaterEurosCentimes(charges)}`,
     '',
     `RESTE POUR VIVRE : ${formaterEurosCentimes(revenus - charges)} par mois`,
     '',
-    'Estimation établie par Passerelle à partir des informations que tu as relues.',
+    'Estimation établie par Passerelle à partir de tes documents et de ton profil.',
   ].join('\n')
 }
 
-function planRemboursement(): string {
+function planRemboursement(_p: ProfilCourant): string {
   const offre = MEILLEURE_OFFRE
   const r = offre.taux / 100 / 12
   let restant = MONTANT_PRET
@@ -68,11 +68,21 @@ function planRemboursement(): string {
   ].join('\n')
 }
 
-function lettreBanquier(): string {
+function lettreBanquier(p: ProfilCourant): string {
   const offre = MEILLEURE_OFFRE
+  const etudes = [p.formation, p.etablissement].filter(Boolean).join(' à ')
+  const ressources = [
+    p.salaire != null
+      ? `Mes ressources mensuelles sont de ${formaterEurosCentimes(p.salaire)}${p.alternant ? " (salaire d'alternance)" : ''}`
+      : "Je n'ai pas de salaire à ce jour",
+    p.apl ? `, complétées par une APL de ${formaterEurosCentimes(p.apl)} selon le simulateur de la CAF` : '',
+    '.',
+    p.loyer != null ? ` Mon loyer s'élève à ${formaterEurosCentimes(p.loyer)}, charges comprises.` : '',
+    ` Une mensualité de ${formaterEurosCentimes(offre.mensualite)} sur ${offre.duree} mois reste compatible avec mon budget.`,
+  ].join('')
   return [
-    NOM_COMPLET,
-    ETUDIANT.adresse,
+    p.nomComplet,
+    p.adresse ?? '',
     '',
     `À l'attention du conseiller ${offre.banque}`,
     '',
@@ -80,19 +90,19 @@ function lettreBanquier(): string {
     '',
     'Madame, Monsieur,',
     '',
-    `Étudiante en Master 1 à l'Université Paris Cité et en alternance, je souhaite financer mes études grâce à un prêt étudiant de ${formaterEurosCentimes(MONTANT_PRET)}.`,
+    `${etudes ? `Inscrit(e) en ${etudes}` : 'Étudiant(e)'}${p.alternant ? ' et en alternance' : ''}, je souhaite financer mes études grâce à un prêt étudiant de ${formaterEurosCentimes(MONTANT_PRET)}.`,
     '',
-    `Mes ressources mensuelles sont de ${formaterEurosCentimes(SALAIRE)} (salaire d'alternance), complétées par une APL estimée à ${formaterEurosCentimes(APL_ESTIMEE)}. Mon loyer s'élève à ${formaterEurosCentimes(LOYER)}, charges comprises. Une mensualité de ${formaterEurosCentimes(offre.mensualite)} sur ${offre.duree} mois reste compatible avec mon budget.`,
+    ressources,
     '',
     'Vous trouverez ci-joint les pièces justificatives de mon dossier.',
     '',
     'Je reste à votre disposition pour tout échange et vous prie de recevoir, Madame, Monsieur, mes salutations distinguées.',
     '',
-    NOM_COMPLET,
+    p.nomComplet,
   ].join('\n')
 }
 
-function checklistPieces(): string {
+function checklistPieces(_p: ProfilCourant): string {
   const pieces: [boolean, string][] = [
     [true, "Pièce d'identité"],
     [true, 'Bail (justificatif de domicile)'],

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { enregistrerSituationCompte } from '@/lib/compte'
 import { useRouter } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
@@ -111,12 +112,15 @@ export function SituationForm() {
 
   function continuer() {
     if (!complet) return
-    enregistrerSituation({
+    const situation = {
       logement: logement as Logement,
       activite: activite as Activite,
       bourse: bourse as Bourse,
       ressources: revenusDemandes ? Number(ressources) : 0,
-    })
+    }
+    enregistrerSituation(situation)
+    // Gardée dans le compte : pré-remplie à la prochaine visite.
+    void enregistrerSituationCompte(situation).catch(() => undefined)
     router.push('/documents')
   }
 

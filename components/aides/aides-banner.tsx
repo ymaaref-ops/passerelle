@@ -21,9 +21,27 @@ export function AidesBanner({ prenom, totalMensuel, pretMaximum, nombreDroits }:
           {prenom}, voici ce qui t&apos;attend
         </p>
         <h2 id="recap-aides" className="mt-2 text-2xl leading-tight font-bold text-balance sm:text-3xl">
-          Jusqu&apos;à <span className="whitespace-nowrap">{formaterEuros(totalMensuel)}/mois</span>{' '}
-          d&apos;aides et un prêt jusqu&apos;à{' '}
-          <span className="whitespace-nowrap">{formaterEuros(pretMaximum)}</span>
+          {totalMensuel > 0 ? (
+            <>
+              Jusqu&apos;à <span className="whitespace-nowrap">{formaterEuros(totalMensuel)}/mois</span>{' '}
+              d&apos;aides
+              {pretMaximum > 0 && (
+                <>
+                  {' '}
+                  et un prêt jusqu&apos;à <span className="whitespace-nowrap">{formaterEuros(pretMaximum)}</span>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {nombreDroits} aide{nombreDroits > 1 ? 's' : ''} pour toi
+              {pretMaximum > 0 && (
+                <>
+                  , dont un prêt jusqu&apos;à <span className="whitespace-nowrap">{formaterEuros(pretMaximum)}</span>
+                </>
+              )}
+            </>
+          )}
         </h2>
         <p className="mt-2 text-white/85">
           {nombreDroits} aides auxquelles tu as probablement droit. Montants estimés, à confirmer

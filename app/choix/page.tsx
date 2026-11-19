@@ -1,8 +1,6 @@
 import { BoutonPrecedent } from '@/components/bouton-precedent'
 import type { Metadata } from 'next'
-import { ChoixForm } from '@/components/choix/choix-form'
-import { etudiantCourant } from '@/lib/data'
-import { trierAides } from '@/lib/eligibilite'
+import { ChoixReel } from '@/components/choix/choix-reel'
 import { GardeDocuments } from '@/components/garde-documents'
 import { STEP_COLORS } from '@/lib/step-colors'
 import { cn } from '@/lib/utils'
@@ -14,8 +12,6 @@ export const metadata: Metadata = {
 }
 
 export default function ChoixPage() {
-  const { droit, peutEtre } = trierAides(etudiantCourant)
-
   return (
     <GardeDocuments>
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:py-12">
@@ -31,7 +27,7 @@ export default function ChoixPage() {
         </p>
       </header>
 
-      <ChoixForm droit={droit} peutEtre={peutEtre} />
+      <ChoixReel />
     </div>
     </GardeDocuments>
   )

@@ -4,23 +4,26 @@
 export const N8N_URL =
   process.env.NEXT_PUBLIC_N8N_URL ?? 'https://ema999999.app.n8n.cloud/webhook'
 
-// Profil de test enregistré dans Supabase (Lucas Martin, données fictives).
-const ETUDIANT_DEMO_ID =
-  process.env.NEXT_PUBLIC_ETUDIANT_ID ?? '71795033-8234-4b4d-b659-1f6cba475860'
-
 const CLE_STOCKAGE = 'passerelle_etudiant_id'
 
-/** Identifiant de l'étudiant : celui créé au dépôt des documents s'il existe, sinon le profil de démo. */
+/** Identifiant du dossier de l'étudiant connecté ('' tant qu'il n'a pas de dossier). Jamais un profil de démo. */
 export function getEtudiantId(): string {
   if (typeof window !== 'undefined') {
     try {
-      const enregistre = window.localStorage.getItem(CLE_STOCKAGE)
-      if (enregistre) return enregistre
+      return window.localStorage.getItem(CLE_STOCKAGE) ?? ''
     } catch {
-      // Stockage indisponible : on garde le profil de démo.
+      // Stockage indisponible.
     }
   }
-  return ETUDIANT_DEMO_ID
+  return ''
+}
+
+export function oublierEtudiantId(): void {
+  try {
+    window.localStorage.removeItem(CLE_STOCKAGE)
+  } catch {
+    // Stockage indisponible : rien à faire.
+  }
 }
 
 export function setEtudiantId(id: string): void {
@@ -73,6 +76,7 @@ export interface EtatN8n {
 
 /** Envoie les aides cochées au workflow 2, qui lance les agents H. Renvoie le nombre d'aides envoyées. */
 export async function lancerDemarches(selection: Iterable<string>, montantPret?: number): Promise<number> {
+  if (!getEtudiantId()) throw new Error("Dépose d'abord tes documents pour lancer tes démarches.")
   const choisies = [...selection]
   const aides = [...new Set(choisies.map((id) => CODES_N8N[id]).filter(Boolean))]
   if (aides.length === 0) return 0
@@ -95,6 +99,7 @@ export async function lancerDemarches(selection: Iterable<string>, montantPret?:
 
 /** Lit l'état de l'étudiant (démarches, statuts, montants) depuis le workflow 4. */
 export async function lireEtat(): Promise<EtatN8n> {
+  if (!getEtudiantId()) return { demarches: [] }
   const reponse = await fetch(
     `${N8N_URL}/passerelle/etat?etudiant_id=${encodeURIComponent(getEtudiantId())}`,
     { cache: 'no-store' },

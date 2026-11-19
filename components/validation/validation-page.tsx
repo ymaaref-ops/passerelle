@@ -12,6 +12,7 @@ import {
   type EnvoisParDemarche,
 } from '@/lib/validation'
 import { NOMS_PIECES_JOINTES } from '@/lib/validation-documents'
+import { sessionCourante } from '@/lib/compte'
 import { lireEtat } from '@/lib/n8n'
 import { STEP_COLORS } from '@/lib/step-colors'
 import { cn } from '@/lib/utils'
@@ -60,7 +61,7 @@ export function ValidationPage() {
     const numero = ++dernierMail.current
     setStatutMail('envoi')
     try {
-      await envoyerMailRecap(construireRecapMail(suivant, NOMS_PIECES_JOINTES))
+      await envoyerMailRecap(construireRecapMail(suivant, NOMS_PIECES_JOINTES, sessionCourante()?.email ?? ''))
       if (numero === dernierMail.current) setStatutMail('ok')
     } catch {
       if (numero === dernierMail.current) setStatutMail('erreur')
@@ -114,7 +115,7 @@ export function ValidationPage() {
       <div ref={confirmation} className="scroll-mt-24 empty:hidden">
         {premierEnvoi && (
           <ConfirmationEnvoi
-            recap={construireRecapMail(envois, NOMS_PIECES_JOINTES)}
+            recap={construireRecapMail(envois, NOMS_PIECES_JOINTES, sessionCourante()?.email ?? '')}
             statutMail={statutMail}
             onReessayer={() => void envoyerMail(envois)}
           />
