@@ -1,9 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, ExternalLink, FileSignature, Loader2, TriangleAlert } from 'lucide-react'
+import { Ban, CheckCircle2, ExternalLink, FileSignature, Loader2, TriangleAlert } from 'lucide-react'
 import { getEtudiantId, lireEtat, type DemandeCaf } from '@/lib/n8n'
-import { COMPTE_DEMANDE_CAF, lancerDemandeCaf } from '@/lib/demande-caf'
+import { COMPTE_DEMANDE_CAF, lancerDemandeCaf, refuserDemandeCaf } from '@/lib/demande-caf'
 import { adresseFenetre, ouvrirFenetre } from '@/lib/fenetre'
 
 const INTERVALLE_MS = 15_000
@@ -57,6 +57,20 @@ export function DemandeAplCaf({ email, simulationFaite }: { email: string | null
     }
   }
 
+  async function refuser() {
+    setEnvoi(true)
+    setErreur(null)
+    try {
+      await refuserDemandeCaf(getEtudiantId())
+      setDemande((d) => ({ ...(d ?? {}), statut: 'refusee' }))
+      setAccord(false)
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : "Le refus n'a pas pu être enregistré.")
+    } finally {
+      setEnvoi(false)
+    }
+  }
+
   const fenetre =
     demande?.session_id && demande.lien_public ? adresseFenetre(demande.session_id, demande.lien_public, 'caf') : null
   const statut = demande?.statut
@@ -76,8 +90,15 @@ export function DemandeAplCaf({ email, simulationFaite }: { email: string | null
 
       {demande === undefined && <p className="text-sm text-muted-foreground">Chargement…</p>}
 
-      {demande !== undefined && (!statut || statut === 'bloque') && (
+      {demande !== undefined && (!statut || statut === 'bloque' || statut === 'refusee') && (
         <div className="flex flex-col gap-3">
+          {statut === 'refusee' && (
+            <p className="flex items-start gap-2 rounded-2xl border border-border bg-card p-3 text-sm text-foreground">
+              <Ban className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              Tu as refusé la demande préparée : rien n&apos;a été envoyé à la CAF. Le brouillon peut rester dans ton espace
+              caf.fr, tu peux l&apos;y supprimer. Tu peux aussi en préparer une nouvelle.
+            </p>
+          )}
           {statut === 'bloque' && (
             <p className="flex items-start gap-2 rounded-2xl border border-step-orange-border bg-step-orange-soft p-3 text-sm text-foreground">
               <TriangleAlert className="mt-0.5 size-4 shrink-0 text-step-orange" aria-hidden="true" />
@@ -102,7 +123,7 @@ export function DemandeAplCaf({ email, simulationFaite }: { email: string | null
             className="inline-flex h-11 items-center justify-center gap-2 self-start rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring/30 disabled:opacity-50"
           >
             {envoi && <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" />}
-            {statut === 'bloque' ? 'Relancer la préparation' : 'Préparer ma demande'}
+            {statut === 'bloque' ? 'Relancer la préparation' : statut === 'refusee' ? 'Préparer une nouvelle demande' : 'Préparer ma demande'}
           </button>
         </div>
       )}
@@ -177,6 +198,15 @@ export function DemandeAplCaf({ email, simulationFaite }: { email: string | null
                 Revoir ce qu&apos;a fait l&apos;agent
               </button>
             )}
+            <button
+              type="button"
+              disabled={envoi}
+              onClick={refuser}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-danger/40 bg-card px-5 text-sm font-semibold text-danger outline-none hover:bg-danger/10 focus-visible:ring-4 focus-visible:ring-ring/30 disabled:opacity-50"
+            >
+              {envoi ? <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" /> : <Ban className="size-4" aria-hidden="true" />}
+              Refuser cette demande
+            </button>
           </div>
         </div>
       )}

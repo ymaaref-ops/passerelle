@@ -22,5 +22,9 @@ export function repondreDemandeCaf(etudiantId: string, sessionId: string, messag
   return appeler<{ ok: boolean }>({ action: 'repondre', etudiant_id: etudiantId, session_id: sessionId, message })
 }
 
+export function refuserDemandeCaf(etudiantId: string) {
+  return appeler<{ ok: boolean }>({ action: 'refuser', etudiant_id: etudiantId })
+}
+
 /** Seul ce compte Passerelle est relié à un compte CAF dans le coffre H. */
 export const COMPTE_DEMANDE_CAF = 'margotfrappa1@gmail.com'
