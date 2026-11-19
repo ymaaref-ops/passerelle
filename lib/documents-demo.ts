@@ -63,7 +63,16 @@ export function documentsPour(situation: { logement: string; activite: string; b
       case 'bail':
         return situation.logement === 'locataire' ? [d] : []
       case 'fiche_paie':
-        return situation.activite !== 'aucune' ? [d] : []
+        // Obligatoire seulement en alternance ; facultative sinon (job étudiant, stage, autre revenu…).
+        return situation.activite === 'alternance'
+          ? [d]
+          : [
+              {
+                ...d,
+                facultatif: true,
+                description: 'Ta dernière fiche de paie, si tu as un job ou un autre revenu. Utile pour la prime d\'activité.',
+              },
+            ]
       case 'avis_imposition':
         // Facultatif : nécessaire seulement pour simuler la bourse Crous (revenus des parents).
         return [
