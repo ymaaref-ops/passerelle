@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, ChevronDown, Home, Info, Pencil } from 'lucide-react'
 import {
-  APL_ESTIMEE,
   DEMARCHES,
   INFOS_APL_INITIALES,
   type DemarcheId,
 } from '@/lib/validation'
+import { lireEtat } from '@/lib/n8n'
 import { BoutonEnvoi } from './bouton-envoi'
 import { CaptureSimulateur } from './capture-simulateur'
 
@@ -18,7 +18,24 @@ interface SectionAplProps {
 
 const demarche = DEMARCHES.apl
 
+/** Montant de l'APL trouvé par l'agent simulateur (n8n), au lieu d'un chiffre de démo. */
+function useAplN8n(): number | null | undefined {
+  const [montant, setMontant] = useState<number | null | undefined>(undefined)
+  useEffect(() => {
+    lireEtat()
+      .then((etat) => {
+        const apl = etat.demarches?.find((d) => d.aide_code === 'apl')
+        const v = apl?.montant_estime
+        setMontant(v === null || v === undefined || v === '' ? null : Math.round(Number(v)))
+      })
+      .catch(() => setMontant(null))
+  }, [])
+  return montant
+}
+
 export function SectionApl({ envoyeeLe, onEnvoyer }: SectionAplProps) {
+  const montantApl = useAplN8n()
+  const texteMontant = montantApl === undefined ? '…' : montantApl === null ? '—' : `${montantApl} €/mois`
   const [infos, setInfos] = useState(INFOS_APL_INITIALES)
   const [enEdition, setEnEdition] = useState<string | null>(null)
   const [brouillon, setBrouillon] = useState('')
@@ -52,7 +69,7 @@ export function SectionApl({ envoyeeLe, onEnvoyer }: SectionAplProps) {
             Envoyée
           </span>
         )}
-        <p className="text-right text-xl font-bold text-step-green sm:text-2xl">{APL_ESTIMEE} €/mois</p>
+        <p className="text-right text-xl font-bold text-step-green sm:text-2xl">{texteMontant}</p>
         <ChevronDown
           className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
           aria-hidden="true"
@@ -148,9 +165,13 @@ export function SectionApl({ envoyeeLe, onEnvoyer }: SectionAplProps) {
         <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
           <div className="flex flex-col justify-center gap-1 rounded-3xl border border-step-green-border bg-step-green-soft p-6">
             <p className="text-sm font-semibold text-step-green">Ton APL estimée</p>
-            <p className="text-5xl font-bold tracking-tight text-step-green">{APL_ESTIMEE} €/mois</p>
+            <p className="text-5xl font-bold tracking-tight text-step-green">{texteMontant}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Estimation du simulateur officiel. Le montant définitif est fixé par la CAF.
+              {montantApl === 0
+                ? "D'après le simulateur de la CAF, tes revenus ou ton logement ne donnent pas droit à l'aide au logement pour l'instant."
+                : montantApl === null
+                  ? "La simulation n'a pas encore donné de montant."
+                  : 'Estimation du simulateur officiel. Le montant définitif est fixé par la CAF.'}
             </p>
           </div>
           <CaptureSimulateur site={demarche.site} nom="APL" />
