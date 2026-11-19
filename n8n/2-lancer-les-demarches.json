@@ -1,0 +1,744 @@
+{
+  "name": "Passerelle – 2. Lancer les démarches",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "passerelle/lancer",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "7c93a37e-d141-43ab-a65e-a414f08fe992",
+      "name": "Aides cochées",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || {};\nif (String(b.consentement).toLowerCase() !== 'true') {\n  throw new Error(\"Consentement manquant : l'étudiant doit accepter que Passerelle fasse les démarches.\");\n}\nif (!b.etudiant_id) throw new Error('etudiant_id manquant.');\nconst aides = Array.isArray(b.aides) ? b.aides : String(b.aides || '').split(',').map(a => a.trim()).filter(Boolean);\nif (aides.length === 0) throw new Error('Aucune aide cochée.');\nconst banques = Array.isArray(b.banques) ? b.banques : String(b.banques || '').split(',').map(a => a.trim()).filter(Boolean);\nconst montant = Number(b.montant) > 0 ? Number(b.montant) : null;\nlet questionnaire = b.questionnaire_reponses || {};\nif (typeof questionnaire === 'string') { try { questionnaire = JSON.parse(questionnaire); } catch (e) { questionnaire = {}; } }\nreturn [{ json: { etudiant_id: b.etudiant_id, aides, banques, montant, questionnaire } }];"
+      },
+      "id": "39c36d97-b836-4c23-ab89-221e3eed5b0f",
+      "name": "Vérifier la demande",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "getAll",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "demarches",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "etudiant_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.etudiant_id }}"
+            }
+          ]
+        }
+      },
+      "id": "d9dd909e-263b-43a3-91ee-d7169b4d1358",
+      "name": "Lire les démarches proposées",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        496,
+        128
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const { aides } = $('Vérifier la demande').first().json;\nconst STATUT = { automatisee: 'en_cours', guidee: 'guidee_a_faire', information: 'proposee' };\nconst choisies = $input.all().map(i => i.json).filter(d => aides.includes(d.aide_code));\nif (choisies.length === 0) throw new Error('Aucune des aides cochées ne correspond aux démarches proposées.');\nreturn choisies.map(d => ({ json: {\n  id: d.id,\n  cochee: true,\n  statut: STATUT[d.niveau] || 'proposee',\n  updated_at: new Date().toISOString(),\n} }));"
+      },
+      "id": "fe3a5c6e-e8cb-4c6b-a24b-291fed2feafe",
+      "name": "Choisir les démarches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "update",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "demarches",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "dataToSend": "autoMapInputData",
+        "inputsToIgnore": "id"
+      },
+      "id": "ac32522c-c3bf-4c89-b087-4bd11726bc92",
+      "name": "Marquer les démarches cochées",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        944,
+        128
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "getAll",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "etudiants",
+        "limit": 1,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Vérifier la demande').first().json.etudiant_id }}"
+            }
+          ]
+        }
+      },
+      "id": "2f7db797-0b93-47e2-abab-d0a2a24d7799",
+      "name": "Lire le profil",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        800,
+        128
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const { id, created_at, updated_at, consentement_analyse, consentement_le, ...profil } = $input.first().json;\nconst toutes = $('Marquer les démarches cochées').all().map(i => i.json);\nconst auto = toutes.filter(d => d.niveau === 'automatisee');\nreturn [{ json: {\n  etudiant_id: id,\n  profil,\n  demarches: auto.map(d => ({ demarche_id: d.id, aide_code: d.aide_code })),\n  nb_automatisees: auto.length,\n  nb_guidees: toutes.filter(d => d.niveau === 'guidee').length,\n  url_retour: 'https://ema9998989.app.n8n.cloud/webhook/passerelle/resultat-agent',\n} }];"
+      },
+      "id": "e1921ef7-ae4a-44a5-afc9-49f97540a9c7",
+      "name": "Préparer l'envoi aux agents",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ message: \"Démarches lancées\", etudiant_id: $json.etudiant_id, automatisees: $json.nb_automatisees, guidees: $json.nb_guidees }) }}",
+        "options": {}
+      },
+      "id": "1887bd42-15dc-4bd3-be22-54e2625c206c",
+      "name": "Répondre à l’interface",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1248,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.nb_automatisees }}",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              },
+              "rightValue": 0
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "05cc5b86-bd3e-4167-957e-5bf456b04542",
+      "name": "Des démarches automatisées ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1472,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pour chaque démarche automatisée : quel agent H lancer, avec quel message.\nconst { etudiant_id, profil, demarches, url_retour } = $(\"Préparer l'envoi aux agents\").first().json;\nconst { banques, montant, questionnaire } = $('Vérifier la demande').first().json;\nconst val = v => (v === null || v === undefined || v === '') ? 'non renseigné' : v;\nconst ouiNon = v => v === true ? 'oui' : (v === false ? 'non' : 'non renseigné');\n\n// Avis d'imposition des parents (lu sur les documents), pour la bourse.\nconst docsDeposes = $(\"Lire l'avis d'imposition\").all().map(i => i.json).filter(d => d && d.champs_extraits);\nconst avis = docsDeposes.find(d => d.type === 'avis_imposition') || null;\nconst a = (avis && avis.champs_extraits) || {};\n\n// Code postal du lieu de résidence : profil (saisi par l'étudiant), sinon adresse du bail, sinon questionnaire.\nconst q = questionnaire || {};\n// Meublé : réponse du questionnaire, sinon ce qui est écrit sur le bail.\nconst bailLu = (docsDeposes.find(d => d.type === 'bail') || {}).champs_extraits || {};\nconst meubleBail = /^(true|oui|meubl)/i.test(String(bailLu.meuble ?? bailLu.type_logement ?? '')) ? true : (/^(false|non|vide)/i.test(String(bailLu.meuble ?? '')) ? false : null);\nif (q.logement_meuble !== true && q.logement_meuble !== false && meubleBail !== null) q.logement_meuble = meubleBail;\nconst cpDe = s => (String(s || '').match(/\\b\\d{5}\\b/) || [])[0] || null;\nconst cp = (/^\\d{5}$/.test(String(profil.code_postal || '')) ? String(profil.code_postal) : null)\n  || cpDe(profil.adresse_logement) || cpDe(q.code_postal) || cpDe(q.visale_projet_cp_ville) || null;\nconst mensuel = Number(profil.ressources_12_mois) > 0 ? Math.round(Number(profil.ressources_12_mois) / 12) : null;\nconst profilBase = [\n  \"Profil de l'étudiant (données de test du hackathon Passerelle) :\",\n  `Nom : ${val(profil.nom)}`,\n  `Prénom : ${val(profil.prenom)}`,\n  `Date de naissance : ${val(profil.date_naissance)}`,\n  `Nationalité : ${val(profil.nationalite)}`,\n  `Établissement : ${val(profil.etablissement)}`,\n  `Formation : ${val(profil.formation)}`,\n  `Situation professionnelle : ${val(profil.situation_pro)}`,\n  `Salaire net mensuel moyen (€) : ${val(mensuel)}`,\n  `Ressources nettes imposables des 12 derniers mois (€) : ${val(profil.ressources_12_mois)}`,\n  `Boursier : ${ouiNon(profil.boursier)}`,\n  `Adresse du logement : ${val(profil.adresse_logement)}`,\n  `Code postal du lieu de résidence : ${val(cp)}`,\n  `Type de logement : ${val(profil.type_logement)}`,\n  `Logement conventionné : ${val(profil.logement_conventionne)}`,\n  `Loyer hors charges (€/mois) : ${val(profil.loyer_hors_charges)}`,\n  `Charges (€/mois) : ${val(profil.charges)}`,\n].join('\\n');\n\n// Tout ce que Hugging Face a lu sur les documents déposés (sans les numéros sensibles).\nconst SENSIBLES = ['numero_document', 'ine', 'numero_fiscal', 'numero_securite_sociale', 'iban', 'mrz'];\nconst NOMS_DOCS = { piece_identite: \"Pièce d'identité\", bail: 'Bail', certificat_scolarite: 'Certificat de scolarité', fiche_paie: 'Fiche de paie', quittance_loyer: 'Quittance de loyer', contrat_alternance: \"Contrat d'alternance (CERFA)\" };\nconst documentsTexte = docsDeposes.filter(d => d.type !== 'avis_imposition').map(d => {\n  const lignes = Object.entries(d.champs_extraits || {})\n    .filter(([k, v]) => !SENSIBLES.includes(k) && v !== null && v !== undefined && v !== '')\n    .map(([k, v]) => `- ${k.replace(/_/g, ' ')} : ${typeof v === 'object' ? JSON.stringify(v) : v}`);\n  return lignes.length ? `${NOMS_DOCS[d.type] || d.type} :\\n${lignes.join('\\n')}` : null;\n}).filter(Boolean).join('\\n\\n');\nconst profilTexte = profilBase\n  + (documentsTexte ? `\\n\\nInformations lues sur les documents déposés par l'étudiant (à utiliser quand le profil dit « non renseigné ») :\\n${documentsTexte}` : '')\n  + \"\\n\\nRègle : utilise ces informations. Ne demande à l'étudiant que ce qui n'est ni dans le profil ni dans les documents, et n'invente jamais une valeur.\";\n\nconst avisTexte = avis ? [\n  \"Avis d'imposition des parents (lu sur le document déposé) :\",\n  `Année de l'avis : ${val(a.annee_avis)} | Revenus de l'année : ${val(a.annee_revenus)}`,\n  `Déclarants : ${val(a.declarants)}`,\n  `Revenu fiscal de référence : ${val(a.revenu_fiscal_reference)} €`,\n  `Revenu brut global : ${val(a.revenu_brut_global)} €`,\n  `Nombre de parts : ${val(a.nombre_parts)}`,\n  `Adresse du foyer fiscal : ${val(a.adresse)}`,\n].join('\\n') : \"Avis d'imposition des parents : NON FOURNI.\";\nconst LIBELLES_CROUS = {\n  crous_premiere_demande: 'Première demande de bourse', crous_ine: 'INE', crous_niveau_etudes: \"Niveau d'études l'an prochain\",\n  crous_redoublement: 'Redoublement', crous_academie_voeu: \"Académie de l'établissement\",\n};\nconst crousTexte = Object.keys(q).filter(k => k.startsWith('crous_') || ['nationalite_zone'].includes(k))\n  .map(k => `${LIBELLES_CROUS[k] || k} : ${q[k] === true ? 'oui' : q[k] === false ? 'non' : val(q[k])}`).join('\\n');\n\nconst NOMS_BANQUES = { 'pret-lbp': 'La Banque Postale', 'pret-sg': 'Société Générale', 'pret-cic': 'CIC' };\nconst listeBanques = banques.map(b => NOMS_BANQUES[b] || b).filter(Boolean);\n\nconst AGENTS = {\n  apl: {\n    agent: 'simulateur-apl-caf',\n    site: 'caf.fr',\n    message: `${profilTexte}\\nLogement meublé : ${q.logement_meuble === true ? 'oui (location meublée)' : q.logement_meuble === false ? 'non (location vide)' : 'non renseigné'}\\nSituation familiale : ${({ celibataire: 'célibataire (seul(e))', couple: 'en couple', marie: 'marié(e) ou pacsé(e)' })[q.situation_familiale] || val(q.situation_familiale)} | Enfants à charge : ${val(q.enfants_a_charge)}\\nTu vis : ${({ seul: 'seul(e)', couple: 'en couple', colocation: 'en colocation' })[q.mode_occupation] || 'non renseigné'}${q.mode_occupation === 'colocation' ? ` (${val(q.nb_colocataires)} personnes, part du loyer charges comprises : ${val(q.part_loyer_cc)} €)` : ''}\\n\\nFais la simulation d'aide au logement avec ce profil et renvoie le montant mensuel estimé. Utilise la réponse « logement meublé » telle quelle, sans faire d'hypothèse.`,\n    answer_format: { type: 'object', properties: { statut: { type: 'string', enum: ['ok', 'bloque'] }, montant_mensuel: { type: ['number', 'null'] }, type_aide: { type: ['string', 'null'] }, etape_bloquante: { type: ['string', 'null'] }, remarques: { type: 'string' } }, required: ['statut', 'montant_mensuel'] },\n  },\n  prime_activite: {\n    agent: 'simulateur-prime-activite-caf',\n    site: 'caf.fr',\n    message: `${profilTexte}\\nSalaires nets des 3 derniers mois : ${mensuel !== null ? `environ ${mensuel} € par mois` : 'non renseignés'}\\nAide au logement perçue : aucune pour l'instant\\n\\nEstime l'éligibilité et le montant mensuel de la prime d'activité avec le simulateur de la CAF.`,\n  },\n  bourse_crous: {\n    agent: 'simulateur-bourse',\n    site: 'etudiant.gouv.fr',\n    message: `${profilTexte}\\n\\n${avisTexte}\\n${crousTexte ? `\\nRéponses de l'étudiant au questionnaire bourse :\\n${crousTexte}\\n` : ''}\\nFais la simulation de bourse sur critères sociaux du Crous avec le simulateur officiel, à partir du revenu fiscal de référence des parents, et renvoie l'échelon et le montant estimés. Ne crée aucun compte, ne te connecte pas et n'envoie aucun dossier social étudiant. Si une information demandée par le simulateur manque, prends l'hypothèse la plus simple et cite-la dans remarques. Établissement : cherche-le une seule fois dans la liste du simulateur (par son nom, puis dans le département de l'académie indiquée). S'il n'y figure pas (école privée ou nom différent), ne bloque pas : choisis une université publique de la même ville que l'école (sinon du même département), pour garder la même distance avec le domicile des parents : le montant de la bourse dépend des revenus des parents et des points de charge (dont la distance), pas de l'établissement, et écris dans remarques « établissement remplacé par … : vérifier que ta formation est habilitée à recevoir des boursiers ». Va droit au but : pas plus de 3 essais par champ. Si l'avis d'imposition des parents n'est pas fourni, ne simule pas : statut = bloque et explique-le dans etape_bloquante.`,\n    answer_format: { type: 'object', properties: { statut: { type: 'string', enum: ['ok', 'bloque'] }, echelon: { type: ['string', 'null'], description: '0bis, 1 à 7, ou non_eligible' }, montant_annuel: { type: ['number', 'null'] }, montant_mensuel: { type: ['number', 'null'] }, points_de_charge: { type: ['number', 'null'] }, etape_bloquante: { type: ['string', 'null'] }, remarques: { type: 'string' } }, required: ['statut', 'echelon', 'montant_annuel', 'remarques'] },\n  },\n  pret_garanti: {\n    agent: 'comparateur-pret',\n    site: 'sites des banques',\n    message: `${profilTexte}\\n\\nCompare un prêt étudiant dans ces banques : ${(listeBanques.length ? listeBanques : ['La Banque Postale', 'Société Générale', 'CIC']).join(', ')}.\\nMontant : ${montant || 8000} €. Durée : 60 mois. Différé : aucun.`,\n  },\n};\n\n// Alternant (contrat d'apprentissage ou de professionnalisation) : pas de bourse du Crous, inutile de lancer l'agent.\n// La réponse de l'étudiant (étape Situation) prime ; le nom de la formation ne sert que s'il n'a rien répondu.\nconst alternant = q.statut ? q.statut === 'alternant' : /altern|apprenti/i.test(String(profil.formation || ''));\nreturn demarches.map(d => {\n  const cfg = AGENTS[d.aide_code] ? { ...AGENTS[d.aide_code] } : null;\n  if (cfg && d.aide_code === 'bourse_crous' && alternant) {\n    cfg.message += \"\\n\\nNote : l'étudiant est en alternance. Fais quand même la simulation normalement, puis commence tes remarques par : « Attention : en alternance (contrat d'apprentissage ou de professionnalisation), la bourse du Crous n'est pas versée tant que le contrat est en cours. Ce montant vaut si tu reprends des études hors alternance. »\";\n  }\n  return { json: {\n    etudiant_id,\n    demarche_id: d.demarche_id,\n    aide_code: d.aide_code,\n    url_retour,\n    agent: cfg ? cfg.agent : '',\n    site: cfg ? cfg.site : null,\n    message: cfg ? cfg.message : null,\n    answer_format: cfg && cfg.answer_format ? cfg.answer_format : null,\n  } };\n});"
+      },
+      "id": "f8696d76-83c6-412e-b749-49da50a3dd8a",
+      "name": "Une démarche par agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.agent }}",
+              "operator": {
+                "operation": "notEmpty",
+                "singleValue": true,
+                "type": "string"
+              }
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "id": "b78db7ac-f672-47cf-936e-e6bab5849436",
+      "name": "Quel agent ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1920,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aide automatisée sans agent H pour l'instant (ex. prêt garanti) : on la renvoie comme bloquée pour que l'étudiant soit guidé.\nreturn $input.all().map(i => i.json.resultat_direct ? ({ json: {\n  demarche_id: i.json.demarche_id, etudiant_id: i.json.etudiant_id, site: i.json.site, agent: 'aucun', session_id: null,\n  connexion_requise: false, fin: new Date().toISOString(), url_retour: i.json.url_retour, ...i.json.resultat_direct,\n} }) : ({ json: {\n  demarche_id: i.json.demarche_id,\n  etudiant_id: i.json.etudiant_id,\n  site: null,\n  agent: 'aucun',\n  session_id: null,\n  statut: 'failed',\n  connexion_requise: false,\n  fin: new Date().toISOString(),\n  etape_bloquante: \"Pas encore d'agent H pour cette aide : on te guide pour la faire.\",\n  url_retour: i.json.url_retour,\n} }));"
+      },
+      "id": "a32407fd-495d-4a01-8e14-904930e603c0",
+      "name": "Démarche sans agent H",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2144,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url_retour }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "b67298c2-3351-4715-b056-0d6fd11996a4",
+      "name": "Envoyer au workflow 3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4160,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "cachedResultName": "Passerelle – 5. Agent H (lanceur)",
+          "mode": "id",
+          "value": "faAsLq7aGBMPvsVM"
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "898bac80-d0c4-4244-a511-9bf42b74205e",
+      "name": "Confier à l'agent H",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2144,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.aide_code }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "pret_garanti"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "id": "2301440a-af5b-4ea0-8c6a-7884927f39b6",
+      "name": "Comparateur de prêts ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        2144,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "id": "2c90fa47-1882-49ef-b477-d5f1a6793a9e",
+      "name": "Attendre 30 s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2368,
+        -352
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "getAll",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "demarches",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "etudiant_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Comparateur de prêts ?').first().json.etudiant_id }}"
+            },
+            {
+              "keyName": "statut",
+              "condition": "eq",
+              "keyValue": "en_cours"
+            }
+          ]
+        }
+      },
+      "id": "36e14107-4732-4fbf-9c92-0a46481ff877",
+      "name": "Agents CAF encore en cours",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2592,
+        -352
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Le comparateur attend que les autres agents H (APL, prime d'activité) aient fini : H limite à 3 agents en même temps.\nconst pret = $('Comparateur de prêts ?').first().json;\nconst occupes = $input.all().map(i => i.json).filter(d => d.id && d.aide_code !== 'pret_garanti');\n// 40 tours de 30 s au maximum (20 minutes), puis on lance quand même.\nreturn [{ json: { ...pret, attendre: occupes.length > 0 && $runIndex < 40 } }];"
+      },
+      "id": "fa335c91-4fbc-40f4-9a32-64df3f02191b",
+      "name": "Encore occupés ?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2816,
+        -352
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.attendre }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "id": "c5de46ba-acac-471e-b746-ce90fc09a7e2",
+      "name": "Attendre encore ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        3040,
+        -352
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "cachedResultName": "Passerelle – 5. Agent H (lanceur)",
+          "mode": "id",
+          "value": "faAsLq7aGBMPvsVM"
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "0b8e0aec-e38a-4edc-88b1-90e20b6c79d4",
+      "name": "Lancer le comparateur",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        3264,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// On renvoie la démarche telle qu'elle était, sans le drapeau d'attente.\nconst { attendre, ...demarche } = $input.first().json;\nreturn [{ json: demarche }];"
+      },
+      "id": "b2db3900-659d-4d28-b263-5b7a02ad7bed",
+      "name": "Préparer le comparateur",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3152,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "getAll",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "documents",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "etudiant_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Préparer l\\'envoi aux agents').first().json.etudiant_id }}"
+            }
+          ]
+        }
+      },
+      "id": "1d9544ae-d6d0-46ef-9f4b-10bfc2070fe1",
+      "name": "Lire l'avis d'imposition",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1584,
+        0
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Aides cochées": {
+      "main": [
+        [
+          {
+            "node": "Vérifier la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vérifier la demande": {
+      "main": [
+        [
+          {
+            "node": "Lire les démarches proposées",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les démarches proposées": {
+      "main": [
+        [
+          {
+            "node": "Choisir les démarches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choisir les démarches": {
+      "main": [
+        [
+          {
+            "node": "Marquer les démarches cochées",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marquer les démarches cochées": {
+      "main": [
+        [
+          {
+            "node": "Lire le profil",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire le profil": {
+      "main": [
+        [
+          {
+            "node": "Préparer l'envoi aux agents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer l'envoi aux agents": {
+      "main": [
+        [
+          {
+            "node": "Répondre à l’interface",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Répondre à l’interface": {
+      "main": [
+        [
+          {
+            "node": "Des démarches automatisées ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Une démarche par agent": {
+      "main": [
+        [
+          {
+            "node": "Quel agent ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quel agent ?": {
+      "main": [
+        [
+          {
+            "node": "Comparateur de prêts ?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Démarche sans agent H",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Démarche sans agent H": {
+      "main": [
+        [
+          {
+            "node": "Envoyer au workflow 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comparateur de prêts ?": {
+      "main": [
+        [
+          {
+            "node": "Attendre 30 s",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confier à l'agent H",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attendre 30 s": {
+      "main": [
+        [
+          {
+            "node": "Agents CAF encore en cours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agents CAF encore en cours": {
+      "main": [
+        [
+          {
+            "node": "Encore occupés ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encore occupés ?": {
+      "main": [
+        [
+          {
+            "node": "Attendre encore ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attendre encore ?": {
+      "main": [
+        [
+          {
+            "node": "Attendre 30 s",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Préparer le comparateur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer le comparateur": {
+      "main": [
+        [
+          {
+            "node": "Lancer le comparateur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Des démarches automatisées ?": {
+      "main": [
+        [
+          {
+            "node": "Lire l'avis d'imposition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire l'avis d'imposition": {
+      "main": [
+        [
+          {
+            "node": "Une démarche par agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "saveDataErrorExecution": "all"
+  },
+  "active": false
+}

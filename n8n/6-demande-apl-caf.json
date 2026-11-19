@@ -1,0 +1,999 @@
+{
+  "name": "Passerelle – 6. Demande APL (CAF, compte de Margot)",
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Demande APL",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "passerelle/demande-caf",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      }
+    },
+    {
+      "id": "n2",
+      "name": "Lire la requête",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || {};\nconst action = String(b.action || '');\nconst uuid = /^[0-9a-f-]{36}$/;\nreturn [{ json: {\n  action,\n  etudiant_id: uuid.test(String(b.etudiant_id || '')) ? String(b.etudiant_id) : null,\n  session_id: uuid.test(String(b.session_id || '')) ? String(b.session_id) : null,\n  message: String(b.message || '').trim().slice(0, 2000),\n  consentement: String(b.consentement).toLowerCase() === 'true',\n} }];"
+      }
+    },
+    {
+      "id": "n3",
+      "name": "Lire l'étudiant",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      },
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "operation": "getAll",
+        "tableId": "etudiants",
+        "limit": 1,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.etudiant_id || '00000000-0000-0000-0000-000000000000' }}"
+            }
+          ]
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n4",
+      "name": "Lire la démarche APL",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      },
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "operation": "getAll",
+        "tableId": "demarches",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "etudiant_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Lire la requête').first().json.etudiant_id || '00000000-0000-0000-0000-000000000000' }}"
+            },
+            {
+              "keyName": "aide_code",
+              "condition": "eq",
+              "keyValue": "apl"
+            }
+          ]
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "id": "n5",
+      "name": "Contrôler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Garde-fous : l'agent se connecte au compte CAF rangé dans le coffre H de Margot.\n// Il n'est donc proposé QUE pour le dossier de Margot, jamais pour un autre étudiant.\nconst COMPTE_AUTORISE = 'margotfrappa1@gmail.com';\nconst q = $('Lire la requête').first().json;\nconst e = $(\"Lire l'étudiant\").first().json || {};\nconst d = $input.all().map(i => i.json).find(x => x && x.id) || null;\nlet erreur = null;\nif (!['lancer', 'repondre', 'refuser'].includes(q.action)) erreur = 'Action inconnue.';\nelse if (!q.etudiant_id || !e.id) erreur = \"Dossier introuvable : dépose d'abord tes documents.\";\nelse if (String(e.email || '').toLowerCase() !== COMPTE_AUTORISE) erreur = \"La demande APL automatique n'est disponible que pour le compte de démonstration relié à un compte CAF.\";\nelse if (!d) erreur = \"Fais d'abord la simulation APL.\";\nelse if (q.action === 'lancer' && !q.consentement) erreur = \"Il faut accepter que l'agent prépare ta demande.\";\nelse if (q.action === 'lancer' && d.resultat_agent?.demande?.statut === 'en_cours') erreur = \"Une préparation de demande est déjà en cours : ouvre la fenêtre de l'agent.\";\nelse if (q.action === 'repondre' && (!q.session_id || d.resultat_agent?.demande?.session_id !== q.session_id)) erreur = 'Demande inconnue.';\nelse if (q.action === 'repondre' && !q.message) erreur = 'Message vide.';\nelse if (q.action === 'refuser' && !d.resultat_agent?.demande?.session_id) erreur = 'Aucune demande préparée à refuser.';\nreturn [{ json: { ok: !erreur, erreur, action: q.action, etudiant: e, demarche: d, session_id: q.session_id, message: q.message } }];"
+      }
+    },
+    {
+      "id": "n6",
+      "name": "Autorisé ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.ok }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "n7",
+      "name": "Refuser",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1320,
+        200
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ erreur: $json.erreur }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    },
+    {
+      "id": "n8",
+      "name": "Répondre à l’agent ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action === 'repondre' }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "n9",
+      "name": "Envoyer la réponse à l'agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        -160
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "name": "Bearer Auth account 2"
+        }
+      },
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "method": "POST",
+        "url": "=https://agp.eu.hcompany.ai/api/v2/sessions/{{ $json.session_id }}/messages",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'user_message', message: $json.message }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "n10",
+      "name": "Réponse envoyée",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1760,
+        -160
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "n11",
+      "name": "Préparer la demande",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1870,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const { etudiant: e, demarche: d } = $('Contrôler').first().json;\nconst q = ($('Lire le questionnaire').first().json?.questionnaire?.reponses) || {};\nconst docs = $input.all().map(i => i.json).filter(x => x && x.type);\nconst doc = t => (docs.find(x => x.type === t) || {}).champs_extraits || {};\nconst bail = doc('bail'), paie = doc('fiche_paie'), contrat = doc('contrat_alternance'), ident = doc('piece_identite'), avis = doc('avis_imposition');\nconst v = x => (x === null || x === undefined || x === '') ? 'non renseigné' : x;\nconst on = x => x === true ? 'oui' : x === false ? 'non' : 'non renseigné';\nconst sim = d.resultat_agent?.reponse || {};\nconst coloc = q.mode_occupation === 'colocation';\nconst loyerCC = coloc && q.part_loyer_cc ? Number(q.part_loyer_cc) : (e.loyer_hors_charges != null ? Number(e.loyer_hors_charges) + Number(e.charges || 0) : null);\nconst TYPE = { prive: 'Studio, appartement, maison (location privée)', crous: 'Résidence Crous', foyer: 'Foyer ou résidence' };\nconst FAMILLE = { celibataire: 'seule', couple: 'en couple (vie maritale)', marie: 'mariée ou pacsée' };\nconst message = [\n  \"DOSSIER DE L'ÉTUDIANTE (vraie demande, préparée avec son accord ; utilise ces informations et rien d'autre) :\",\n  `Nom : ${v(e.nom)} | Prénom : ${v(e.prenom)} | Date de naissance : ${v(e.date_naissance)} | Lieu de naissance : ${v(e.lieu_naissance)}`,\n  `Nationalité : ${v(e.nationalite)} | E-mail : ${v(e.email)} | Téléphone : ${v(e.telephone)}`,\n  `Situation familiale : ${FAMILLE[q.situation_familiale] || v(q.situation_familiale)} | Enfants à charge : ${v(q.enfants_a_charge)}`,\n  `Établissement : ${v(e.etablissement)} | Formation : ${v(e.formation)} | Situation professionnelle : ${q.statut === 'alternant' ? 'alternante (apprentissage)' : v(e.situation_pro)}`,\n  '',\n  'LOGEMENT (réponses de l\\'étudiante à utiliser telles quelles) :',\n  `Adresse : ${v(e.adresse_logement)} | Code postal : ${v(e.code_postal)}`,\n  `Pour ce logement : elle paie un loyer | Elle est : ${coloc ? 'colocataire' : 'locataire'} (titulaire du bail : ${v(q.titulaire_bail)})`,\n  `Le logement appartient à ses ascendants, descendants, elle-même ou une société à elle : ${on(q.lien_parente_bailleur)}`,\n  `Type de logement : ${TYPE[q.type_logement] || v(e.type_logement)}`,\n  `Surface du logement : ${v(q.surface_m2)} m² | Logement meublé : ${on(q.logement_meuble ?? (bail.meuble === true || /^(oui|true|meubl)/i.test(String(bail.meuble ?? '')) ? true : (bail.meuble === false || /^(non|false|vide)/i.test(String(bail.meuble ?? '')) ? false : null)))}`,\n  coloc ? `Colocation : ${v(q.nb_colocataires)} personnes en tout ; sa part du loyer charges comprises : ${v(q.part_loyer_cc)} €/mois (loyer total du bail : ${v(e.loyer_hors_charges)} € + ${v(e.charges)} € de charges)` : `Loyer hors charges : ${v(e.loyer_hors_charges)} €/mois | Charges : ${v(e.charges)} €/mois`,\n  `Loyer à déclarer (charges comprises, sa part) : ${v(loyerCC)} €/mois`,\n  `Bailleur (nom sur le bail) : ${v(bail.bailleur)} | Type de bailleur : ${v(q.bailleur_type)} | Adresse du bailleur : ${v(q.bailleur_adresse_complete || bail.adresse_bailleur)}`,\n  `Sur le bail : colocation ${v(bail.colocation)} | nombre d'occupants ${v(bail.nombre_occupants)}`,\n  `Date d'entrée dans le logement (début du bail) : ${v(bail.date_debut)} | Durée du bail : ${v(bail.duree)} mois | Locataires sur le bail : ${v(bail.locataire)}`,\n  `Déjà allocataire CAF : ${on(q.caf_deja_allocataire)}`,\n  '',\n  'EMPLOI ET RESSOURCES (lus sur ses documents) :',\n  `Employeur : ${v(paie.employeur || contrat.employeur)} | SIRET : ${v(paie.siret_employeur || contrat.siret_employeur)} | Adresse : ${v(paie.adresse_employeur || contrat.adresse_employeur)}`,\n  `Contrat : ${v(contrat.type_contrat)} du ${v(contrat.date_debut)} au ${v(contrat.date_fin)} | CFA : ${v(contrat.cfa)}`,\n  `Dernière fiche de paie (${v(paie.periode)}) : brut ${v(paie.salaire_brut)} € | net social ${v(paie.net_social)} € | net à payer ${v(paie.net_a_payer)} €`,\n  `Lieu de naissance (pièce d'identité) : ${v(e.lieu_naissance || ident.lieu_naissance)} | Sexe : ${v(ident.sexe)}`,\n  `Avis d'imposition des parents ${v(avis.annee_avis)} : revenu fiscal de référence ${v(avis.revenu_fiscal_reference)} €`,\n  `Revenus des 12 derniers mois : ${v(q.revenus_12_mois ?? e.ressources_12_mois)} € | Pension alimentaire reçue sur l'année : ${v(q.pension_recue_an)} € | Patrimoine de plus de 30 000 € : ${on(q.patrimoine_sup_30k)}`,\n  `Boursière : ${e.boursier === true ? 'oui' : e.boursier === false ? 'non' : 'non renseigné'}`,\n  `Simulation APL faite juste avant sur caf.fr : ${v(d.montant_estime)} €/mois (${v(sim.type_aide)}).`,\n  '',\n  \"Prépare la demande d'aide au logement jusqu'à l'écran récapitulatif et arrête-toi avant la validation finale.\",\n  \"Pour chaque question du formulaire, cherche la réponse dans cet ordre : 1) ce qui est déjà pré-rempli dans l'espace caf.fr (garde-le), 2) ce dossier (questionnaire et documents ci-dessus : bail, fiche de paie, contrat, pièce d'identité). Ne pose une question à l'étudiante que si la réponse n'est ni sur caf.fr ni dans ce dossier. Quand tu dois en poser, regroupe toutes les questions restantes dans un seul message. Une valeur « non renseigné » n'est pas une réponse : n'invente rien.\",\n].join('\\n');\nreturn [{ json: { demarche_id: d.id, ancien: d.resultat_agent || {}, requete: { agent: 'demande-apl-caf', messages: message, timezone: 'Europe/Paris', max_time_s: 2400, idle_timeout_s: 1800 } } }];"
+      }
+    },
+    {
+      "id": "n12",
+      "name": "Lancer l'agent demande-apl-caf",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        40
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "name": "Bearer Auth account 2"
+        }
+      },
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "method": "POST",
+        "url": "https://agp.eu.hcompany.ai/api/v2/sessions",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requete) }}",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "n13",
+      "name": "Partager la session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        40
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "name": "Bearer Auth account 2"
+        }
+      },
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "method": "POST",
+        "url": "=https://agp.eu.hcompany.ai/api/v2/sessions/{{ $json.id }}/share",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n14",
+      "name": "Ranger la session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        40
+      ],
+      "parameters": {
+        "jsCode": "const p = $('Préparer la demande').first().json;\nconst s = $(\"Lancer l'agent demande-apl-caf\").first().json;\nconst partage = $input.first().json || {};\nconst lien = partage.share_url ? (String(partage.share_url).startsWith('http') ? partage.share_url : 'https://agp.eu.hcompany.ai' + partage.share_url) : null;\nreturn [{ json: { id: p.demarche_id, resultat_agent: { ...p.ancien, demande: { session_id: s.id, lien_public: lien, lien_session: s.agent_view_url || null, statut: 'en_cours', lance_le: new Date().toISOString() } }, updated_at: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "n15",
+      "name": "Enregistrer la session",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2420,
+        40
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      },
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "operation": "update",
+        "tableId": "demarches",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "dataToSend": "autoMapInputData",
+        "inputsToIgnore": "id"
+      }
+    },
+    {
+      "id": "n16",
+      "name": "Session lancée",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2640,
+        40
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ session_id: $('Ranger la session').first().json.resultat_agent.demande.session_id, lien: $('Ranger la session').first().json.resultat_agent.demande.lien_public }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "n17",
+      "name": "Attendre 20 s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2860,
+        40
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 20,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "n18",
+      "name": "État de la session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3080,
+        40
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "name": "Bearer Auth account 2"
+        }
+      },
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "method": "GET",
+        "url": "=https://agp.eu.hcompany.ai/api/v2/sessions/{{ $('Ranger la session').first().json.resultat_agent.demande.session_id }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n19",
+      "name": "Terminé ?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        40
+      ],
+      "parameters": {
+        "jsCode": "const s = $input.first().json || {};\nconst st = s.status?.status ?? s.status;\nlet r = s.latest_answer;\nif (typeof r === 'string') { try { r = JSON.parse(r.replace(/```json|```/g, '').trim()); } catch (e) { r = { remarques: r }; } }\nconst fini = ['completed', 'failed', 'timed_out', 'interrupted'].includes(st)\n  || (r && ['pret_a_valider', 'bloque'].includes(r.statut))\n  || $runIndex >= 120; // 40 minutes au plus\nreturn [{ json: { fini, st, r: r || null } }];"
+      }
+    },
+    {
+      "id": "n20",
+      "name": "Fini ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3520,
+        40
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.fini }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "n21",
+      "name": "Relire la démarche",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3740,
+        0
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      },
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "operation": "getAll",
+        "tableId": "demarches",
+        "limit": 1,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Ranger la session').first().json.id }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n22",
+      "name": "Résultat de la demande",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3960,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst { st, r } = $('Terminé ?').last().json;\nconst statut = r?.statut === 'pret_a_valider' ? 'pret_a_valider' : (r?.statut === 'bloque' || ['failed', 'timed_out', 'interrupted'].includes(st) ? 'bloque' : (r?.statut || 'bloque'));\nconst avant = d.resultat_agent?.demande || {};\nreturn [{ json: { id: d.id, resultat_agent: { ...(d.resultat_agent || {}), demande: { ...avant, statut, etape_atteinte: r?.etape_atteinte || null, recapitulatif: r?.recapitulatif || null, questions_sans_reponse: r?.questions_sans_reponse || [], remarques: r?.remarques || null, statut_h: st, fini_le: new Date().toISOString() } }, updated_at: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "n23",
+      "name": "Enregistrer le résultat",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4180,
+        0
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      },
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "operation": "update",
+        "tableId": "demarches",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "dataToSend": "autoMapInputData",
+        "inputsToIgnore": "id"
+      }
+    },
+    {
+      "id": "n24",
+      "name": "Lire le questionnaire",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        200
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      },
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "operation": "getAll",
+        "tableId": "comptes",
+        "limit": 1,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "etudiant_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Contrôler').first().json.etudiant.id }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n30",
+      "name": "Refuser ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1210,
+        -120
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action === 'refuser' }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "n31",
+      "name": "Marquer refusée",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1430,
+        -320
+      ],
+      "parameters": {
+        "jsCode": "const { demarche: d } = $input.first().json;\nconst r = d.resultat_agent || {};\nreturn [{ json: { id: d.id, resultat_agent: { ...r, demande: { ...(r.demande || {}), statut: 'refusee', refusee_le: new Date().toISOString() } }, updated_at: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "n32",
+      "name": "Enregistrer le refus",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1650,
+        -320
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      },
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "operation": "update",
+        "tableId": "demarches",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "dataToSend": "autoMapInputData",
+        "inputsToIgnore": "id"
+      }
+    },
+    {
+      "id": "n33",
+      "name": "Refus enregistré",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1870,
+        -320
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n34",
+      "name": "Lire les documents",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1650,
+        200
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      },
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "operation": "getAll",
+        "tableId": "documents",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "etudiant_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Contrôler').first().json.etudiant.id }}"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Demande APL": {
+      "main": [
+        [
+          {
+            "node": "Lire la requête",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire la requête": {
+      "main": [
+        [
+          {
+            "node": "Lire l'étudiant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire l'étudiant": {
+      "main": [
+        [
+          {
+            "node": "Lire la démarche APL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire la démarche APL": {
+      "main": [
+        [
+          {
+            "node": "Contrôler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contrôler": {
+      "main": [
+        [
+          {
+            "node": "Autorisé ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Autorisé ?": {
+      "main": [
+        [
+          {
+            "node": "Refuser ?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Refuser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Répondre à l’agent ?": {
+      "main": [
+        [
+          {
+            "node": "Envoyer la réponse à l'agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lire le questionnaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer la réponse à l'agent": {
+      "main": [
+        [
+          {
+            "node": "Réponse envoyée",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer la demande": {
+      "main": [
+        [
+          {
+            "node": "Lancer l'agent demande-apl-caf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lancer l'agent demande-apl-caf": {
+      "main": [
+        [
+          {
+            "node": "Partager la session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Partager la session": {
+      "main": [
+        [
+          {
+            "node": "Ranger la session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ranger la session": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer la session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enregistrer la session": {
+      "main": [
+        [
+          {
+            "node": "Session lancée",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session lancée": {
+      "main": [
+        [
+          {
+            "node": "Attendre 20 s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attendre 20 s": {
+      "main": [
+        [
+          {
+            "node": "État de la session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "État de la session": {
+      "main": [
+        [
+          {
+            "node": "Terminé ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Terminé ?": {
+      "main": [
+        [
+          {
+            "node": "Fini ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fini ?": {
+      "main": [
+        [
+          {
+            "node": "Relire la démarche",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Attendre 20 s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relire la démarche": {
+      "main": [
+        [
+          {
+            "node": "Résultat de la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Résultat de la demande": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer le résultat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire le questionnaire": {
+      "main": [
+        [
+          {
+            "node": "Lire les documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refuser ?": {
+      "main": [
+        [
+          {
+            "node": "Marquer refusée",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Répondre à l’agent ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marquer refusée": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer le refus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enregistrer le refus": {
+      "main": [
+        [
+          {
+            "node": "Refus enregistré",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les documents": {
+      "main": [
+        [
+          {
+            "node": "Préparer la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  },
+  "active": false
+}

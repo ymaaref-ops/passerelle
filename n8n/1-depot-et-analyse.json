@@ -1,0 +1,687 @@
+{
+  "name": "Passerelle – 1. Dépôt et analyse",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "passerelle/depot",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*",
+          "binaryPropertyName": "photo"
+        }
+      },
+      "id": "61893a0c-dfbd-4c01-b5d7-affbd24bf6c3",
+      "name": "Dépôt des photos",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst body = item.json.body || {};\nif (String(body.consentement).toLowerCase() !== 'true') {\n  throw new Error(\"Consentement manquant : l'étudiant doit accepter l'analyse de ses documents.\");\n}\nconst aides = Array.isArray(body.aides)\n  ? body.aides\n  : String(body.aides || 'apl').split(',').map(a => a.trim()).filter(Boolean);\nconst photos = [];\nfor (const [cle, fichier] of Object.entries(item.binary || {})) {\n  const buffer = await this.helpers.getBinaryDataBuffer(0, cle);\n  photos.push({ nom_fichier: fichier.fileName || cle, mime: fichier.mimeType || 'image/png', base64: buffer.toString('base64') });\n}\nif (photos.length === 0) throw new Error('Aucune photo reçue.');\nconst nombre = v => (v === undefined || v === null || v === '' || isNaN(Number(v))) ? null : Number(v);\nconst boursier = body.boursier === undefined || body.boursier === '' ? null : String(body.boursier).toLowerCase() === 'true';\nreturn [{ json: {\n  email: body.email || null, prenom: body.prenom, nom: body.nom, aides,\n  ressources_12_mois: nombre(body.ressources_12_mois), boursier,\n  consentement_analyse: true, consentement_le: new Date().toISOString(), photos,\n} }];"
+      },
+      "id": "3ccbd87f-4876-4c5c-a0d4-f0418c42bcad",
+      "name": "Vérifier et préparer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $input.first().json;\nreturn [{ json: { nom: p.nom, prenom: p.prenom, email: p.email,\n  ressources_12_mois: p.ressources_12_mois, boursier: p.boursier,\n  consentement_analyse: p.consentement_analyse, consentement_le: p.consentement_le } }];"
+      },
+      "id": "d9322e87-0e71-4055-9f79-99ab4e5d565c",
+      "name": "Champs de l'étudiant",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "etudiants",
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "4b2ec9d3-2c7d-42ef-bc64-fdd970fd57e1",
+      "name": "Créer l'étudiant",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        672,
+        192
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ message: \"Documents reçus, analyse en cours\", etudiant_id: $json.id }) }}",
+        "options": {}
+      },
+      "id": "f5d49192-0912-4ce2-980e-97c297d90897",
+      "name": "Répondre à l’interface",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        896,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const PROMPT = \"Tu lis la photo d'un document administratif d'étudiant (jeu de test fictif). Réponds UNIQUEMENT avec un objet JSON de la forme {\\\"type\\\": \\\"...\\\", \\\"champs\\\": {...}}, sans texte autour. type est l'un de : piece_identite, bail, certificat_scolarite, avis_imposition, fiche_paie, quittance_loyer, contrat_alternance, autre. Champs à extraire selon le type : piece_identite : nom, prenom, sexe, nationalite, date_naissance, lieu_naissance, numero_document, date_expiration ; bail : bailleur, adresse_bailleur, locataire, adresse_logement, type_logement, meuble (true ou false), colocation (true ou false, null si impossible à savoir), nombre_occupants, surface_m2, loyer_hors_charges, charges, date_debut, duree ; certificat_scolarite : etablissement, academie, nom, prenom, date_naissance, ine, formation, annee_universitaire, date_emission ; avis_imposition : annee_revenus, annee_avis, declarants, adresse, nombre_parts, revenu_brut_global, revenu_fiscal_reference, impot_net ; fiche_paie : employeur, siret_employeur, adresse_employeur, salarie, periode, heures, salaire_brut, net_social, net_a_payer ; quittance_loyer : bailleur, locataire, adresse_logement, periode, loyer_hors_charges, charges, total, date ; contrat_alternance (contrat d'apprentissage ou de professionnalisation, CERFA) : type_contrat, employeur, siret_employeur, adresse_employeur, salarie, cfa, date_debut, date_fin, remuneration_brute. Précisions : ine = identifiant national étudiant (11 caractères) ; academie = nom de l'académie ; surface_m2 = surface habitable en m², nombre seul ; siret_employeur = 14 chiffres sans espaces ; net_social = le montant « net social » de la fiche de paie, différent du net à payer ; cfa = nom du centre de formation ou de l'école. Dates au format JJ/MM/AAAA, périodes au format MM/AAAA, montants et surfaces en nombres sans symbole. Recopie les noms exactement comme écrits, même s'ils semblent faux. Si un champ est absent ou illisible, mets null.\";\nconst prep = $('Vérifier et préparer').first().json;\nconst etudiant = $input.first().json;\nreturn prep.photos.map(p => ({ json: {\n  etudiant_id: etudiant.id,\n  nom_fichier: p.nom_fichier,\n  requete_hf: {\n    model: 'Qwen/Qwen3.8-27B',\n    temperature: 0,\n    messages: [{ role: 'user', content: [\n      { type: 'text', text: PROMPT },\n      { type: 'image_url', image_url: { url: `data:${p.mime};base64,${p.base64}` } },\n    ] }],\n  },\n} }));"
+      },
+      "id": "da195d3b-2da0-4bb6-9075-a111817c74f3",
+      "name": "Découper les photos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://router.huggingface.co/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requete_hf) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "a94f4370-d72d-4c6a-86cf-d4571cb4a9c5",
+      "name": "Lire les documents (vision Hugging Face)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1344,
+        192
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const TYPES = ['piece_identite', 'bail', 'certificat_scolarite', 'avis_imposition', 'fiche_paie', 'quittance_loyer', 'contrat_alternance', 'autre'];\nconst photos = $('Découper les photos').all();\nreturn $input.all().map((item, i) => {\n  const texte = item.json.choices?.[0]?.message?.content ?? '';\n  let lu;\n  try { lu = JSON.parse(texte.replace(/```json|```/g, '').trim()); }\n  catch (e) { lu = { type: 'autre', champs: {}, erreur_lecture: texte.slice(0, 500) }; }\n  const photo = photos[i].json;\n  return { json: {\n    etudiant_id: photo.etudiant_id,\n    ref_jeu_de_test: photo.nom_fichier,\n    type: TYPES.includes(lu.type) ? lu.type : 'autre',\n    champs_extraits: lu.champs || {},\n    statut: lu.erreur_lecture ? 'erreur' : 'extrait',\n    modele: 'Qwen/Qwen3.8-27B',\n  } };\n});"
+      },
+      "id": "c8bb2668-bf29-4ab7-9a21-fd7b2b19afb5",
+      "name": "Lire la réponse du modèle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "documents",
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "a01c8174-59a2-4301-9ad9-150d6a5f3908",
+      "name": "Enregistrer les documents",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        192
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const PROMPT = \"Tu vérifies la cohérence du dossier d'un étudiant. Année universitaire en cours : 2026-2027. Voici les documents extraits (JSON). Compare-les entre eux et signale seulement les VRAIS problèmes. Sois tolérant : les documents viennent de sources différentes et sont lus par photo. \\n\\nNE SIGNALE JAMAIS : une différence de majuscules ou minuscules (MARTIN = Martin), d'accents (Léa = LEA), de tirets ou d'espaces (Jean-Pierre = Jean Pierre), d'ordre nom / prénom, un deuxième prénom en plus ou en moins, un nom d'usage ou d'épouse ; pour les adresses : abréviations (bd = boulevard, av = avenue, r = rue, st = saint), ponctuation, compléments (bâtiment, étage, porte, appartement, résidence), ordre des éléments, ville écrite avec ou sans arrondissement ; un format de date différent ; un champ illisible ou vide (null). Les parents sur l'avis d'imposition peuvent avoir un autre prénom et une autre adresse que l'étudiant : c'est normal.\\n\\nCodes possibles : nom_incoherent (UNIQUEMENT si le nom de famille est clairement celui d'une autre personne), adresse_incoherente (UNIQUEMENT si la rue ou le code postal du logement sont différents entre bail et quittance), annee_avis_incorrecte (avis d'imposition plus ancien que l'avis 2025 sur les revenus 2024), certificat_perime (année universitaire autre que 2026-2027), montants_incoherents (par exemple net supérieur au brut, total différent de loyer + charges de plus de 5 €). Gravité : bloquante seulement pour certificat_perime, un document qui appartient à une autre personne de façon évidente, ou des montants impossibles ; tout le reste et tout doute = a_verifier. Réponds UNIQUEMENT avec un objet JSON {\\\"anomalies\\\": [{\\\"code\\\": \\\"...\\\", \\\"type_document\\\": \\\"...\\\", \\\"message\\\": \\\"phrase courte, en tutoyant l'étudiant\\\", \\\"gravite\\\": \\\"bloquante\\\" ou \\\"a_verifier\\\"}]}. S'il n'y a aucun problème, réponds {\\\"anomalies\\\": []}.\";\nconst docs = $input.all().map(i => i.json);\nconst documents = docs.map(d => ({ id: d.id, type: d.type, champs: d.champs_extraits }));\nreturn [{ json: {\n  etudiant_id: docs[0].etudiant_id,\n  documents,\n  requete_hf: {\n    model: 'Qwen/Qwen3.8-27B',\n    temperature: 0,\n    messages: [\n      { role: 'system', content: PROMPT },\n      { role: 'user', content: JSON.stringify(documents) },\n    ],\n  },\n} }];"
+      },
+      "id": "0f28ae29-3b0e-4fa2-87e2-ff6aed396415",
+      "name": "Regrouper les documents",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://router.huggingface.co/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requete_hf) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "cdeb203d-2db1-454f-bd19-92f5b08c793b",
+      "name": "Contrôle croisé (LLM Hugging Face)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2240,
+        96
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const regroupe = $('Regrouper les documents').first().json;\nconst texte = $input.first().json.choices?.[0]?.message?.content ?? '';\nlet anomalies = [];\ntry { anomalies = JSON.parse(texte.replace(/```json|```/g, '').trim()).anomalies || []; }\ncatch (e) {\n  anomalies = [{ code: 'controle_illisible', type_document: null, gravite: 'a_verifier',\n                 message: \"Le contrôle automatique n'a pas pu être lu : à vérifier à la main.\" }];\n}\n\n// ---- Vérification par code : on ne garde pas les faux problèmes (majuscules, accents, abréviations…). ----\nconst docs = regroupe.documents || [];\nconst champs = t => (docs.find(d => d.type === t) || {}).champs || {};\nconst norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\nconst VIDES = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'l', 'd', 'et', 'epouse', 'ep', 'nee', 'ne', 'mme', 'm', 'mr', 'mlle']);\nconst mots = s => norm(s).split(' ').filter(m => m.length >= 2 && !VIDES.has(m));\n\n// Noms : on compare les noms de famille, sans tenir compte des majuscules, accents, tirets ni de l'ordre.\nconst id = champs('piece_identite');\nconst certif = champs('certificat_scolarite');\n// Référence : la pièce d'identité ; le certificat seulement s'il n'y a pas de pièce d'identité.\nconst nomsRef = new Set(mots(id.nom).length ? mots(id.nom) : mots(certif.nom));\nconst nomsDuDoc = t => {\n  const c = champs(t);\n  return mots([c.nom, c.prenom, c.locataire, c.salarie, c.declarants].filter(Boolean).join(' '));\n};\nconst memeNom = t => {\n  if (nomsRef.size === 0) return true;\n  const m = nomsDuDoc(t);\n  if (m.length === 0) return true; // nom illisible : pas une incohérence\n  return m.some(x => nomsRef.has(x));\n};\n\n// Adresses du logement : code postal + mots de la rue, abréviations développées, compléments ignorés.\nconst ABR = { bd: 'boulevard', bld: 'boulevard', boul: 'boulevard', av: 'avenue', ave: 'avenue', r: 'rue', st: 'saint', ste: 'sainte', pl: 'place', imp: 'impasse', all: 'allee', ch: 'chemin', rte: 'route', fg: 'faubourg', fbg: 'faubourg', qu: 'quai', crs: 'cours', sq: 'square' };\nconst COMPLEMENTS = new Set(['bat', 'batiment', 'etage', 'porte', 'appartement', 'appt', 'apt', 'app', 'residence', 'res', 'gauche', 'droite', 'escalier', 'esc', 'er', 'e', 'eme', 'ieme', 'n', 'no', 'numero', 'paris', 'lyon', 'marseille', 'france', 'cedex', 'arrondissement']);\nconst adresse = s => {\n  const n = norm(s);\n  const cp = (n.match(/\\b\\d{5}\\b/) || [])[0] || null;\n  const rue = n.split(' ').map(m => ABR[m] || m).filter(m => m.length >= 3 && !/^\\d+$/.test(m) && !COMPLEMENTS.has(m) && !VIDES.has(m));\n  return { cp, rue };\n};\nconst adressesProches = (a, b) => {\n  if (!a || !b) return true;\n  const x = adresse(a), y = adresse(b);\n  if (x.cp && y.cp && x.cp !== y.cp) return false;\n  if (x.rue.length === 0 || y.rue.length === 0) return true;\n  return x.rue.some(m => y.rue.includes(m));\n};\nconst bail = champs('bail').adresse_logement;\nconst autresAdresses = [champs('quittance_loyer').adresse_logement].filter(Boolean);\nconst DOCS_LOGEMENT = ['bail', 'quittance_loyer'];\n\n// Année universitaire : acceptée si elle couvre 2026-2027 (« 2026/2027 », « 2026-2028 » pour un cursus sur 2 ans, « 26-27 »…).\nconst anneeOk = s => {\n  const ans = (String(s || '').match(/\\d{2,4}/g) || []).map(x => (x.length === 2 ? 2000 + Number(x) : Number(x))).filter(a => a >= 2000 && a <= 2100);\n  if (ans.length === 0) return true; // illisible : pas une raison de bloquer\n  const debut = Math.min(...ans), fin = Math.max(...ans);\n  return debut <= 2026 && fin >= 2026;\n};\n\n// Seules ces raisons peuvent bloquer ; tout le reste est à vérifier.\nconst BLOQUANTS = new Set(['certificat_perime', 'montants_incoherents']);\n\nanomalies = anomalies.flatMap(a => {\n  const code = String(a.code || '');\n  if (code === 'nom_incoherent') {\n    if (memeNom(a.type_document)) return [];\n    return [{ ...a, gravite: 'a_verifier' }];\n  }\n  if (code === 'adresse_incoherente') {\n    // Adresse d'un employeur ou d'une école : pas une incohérence du dossier logement.\n    if (a.type_document && !DOCS_LOGEMENT.includes(a.type_document)) return [];\n    if (autresAdresses.every(x => adressesProches(bail, x))) return [];\n    return [{ ...a, gravite: 'a_verifier' }];\n  }\n  if (code === 'certificat_perime' || /annee/.test(code) && (a.type_document === 'certificat_scolarite' || !a.type_document)) {\n    if (code !== 'annee_avis_incorrecte' && anneeOk(certif.annee_universitaire)) return [];\n  }\n  if (!BLOQUANTS.has(code)) return [{ ...a, gravite: 'a_verifier' }];\n  return [a];\n});\n\nreturn [{ json: { etudiant_id: regroupe.etudiant_id, documents: regroupe.documents, anomalies, nb_anomalies: anomalies.length } }];"
+      },
+      "id": "9d5eac23-134f-4d8f-ab31-e562297afddd",
+      "name": "Lire les anomalies",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { etudiant_id, documents } = $('Lire les anomalies').first().json;\nconst doc = t => (documents.find(d => d.type === t) || {}).champs || {};\nconst versDate = s => {\n  const m = /^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/.exec(String(s || ''));\n  return m ? `${m[3]}-${m[2]}-${m[1]}` : null;\n};\nconst nombre = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Number(v);\nconst id = doc('piece_identite');\nconst certif = doc('certificat_scolarite');\nconst bail = doc('bail');\nconst travaille = documents.some(d => d.type === 'fiche_paie');\nreturn [{ json: {\n  etudiant_id,\n  nom: id.nom, prenom: id.prenom, date_naissance: versDate(id.date_naissance), nationalite: id.nationalite,\n  etablissement: certif.etablissement, formation: certif.formation,\n  adresse_logement: bail.adresse_logement, type_logement: bail.type_logement,\n  loyer_hors_charges: nombre(bail.loyer_hors_charges), charges: nombre(bail.charges),\n  situation_pro: travaille ? 'salarié(e) ou alternant(e)' : 'aucune',\n  updated_at: new Date().toISOString(),\n} }];"
+      },
+      "id": "9b8ef8d9-26dd-460c-b041-24a83eab5465",
+      "name": "Construire le profil",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3136,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "update",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "etudiants",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.etudiant_id }}"
+            }
+          ]
+        },
+        "dataToSend": "autoMapInputData",
+        "inputsToIgnore": "etudiant_id"
+      },
+      "id": "f6b19cd0-8538-456c-b232-8c51572d5eb7",
+      "name": "Mettre à jour le profil",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3360,
+        96
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const { documents, anomalies } = $input.first().json;\nconst ANCIEN = { annee_avis_incorrecte: 'avis_imposition', certificat_perime: 'certificat_scolarite' };\nreturn documents.map(d => {\n  const siennes = anomalies\n    .filter(a => (a.type_document || ANCIEN[a.code]) === d.type)\n    .map(a => ({ code: a.code, message: a.message, gravite: a.gravite === 'bloquante' ? 'bloquante' : 'a_verifier' }));\n  return { json: {\n    id: d.id,\n    anomalies: siennes,\n    statut: siennes.some(a => a.gravite === 'bloquante') ? 'rejete' : 'verifie',\n  } };\n});"
+      },
+      "id": "4b6c43ab-0450-4a93-b264-5f09d8c67b2e",
+      "name": "Anomalies par document",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "update",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "documents",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "dataToSend": "autoMapInputData",
+        "inputsToIgnore": "id"
+      },
+      "id": "62c55b5b-803a-4ca4-be4d-00b43d026adc",
+      "name": "Enregistrer les anomalies",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2912,
+        96
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "getAll",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "aides",
+        "returnAll": true
+      },
+      "id": "97609dfb-74e1-4745-8d1b-cd2ea7f34e46",
+      "name": "Lire le catalogue des aides",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3584,
+        96
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Moteur d'éligibilité : profil + documents + catalogue → une démarche proposée par aide.\nconst p = $('Construire le profil').first().json;\nconst docs = $('Lire les anomalies').first().json.documents;\nconst aides = $input.all().map(i => i.json);\n\nconst types = new Set(docs.map(d => d.type));\nconst naissance = p.date_naissance ? new Date(p.date_naissance) : null;\nconst age = naissance ? Math.floor((Date.now() - naissance.getTime()) / (365.25 * 24 * 3600 * 1000)) : null;\nconst sansAccent = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');\nconst NATIONALITES_EEE = ['francais', 'allemand', 'italien', 'espagnol', 'portugais', 'belge', 'neerlandais', 'luxembourgeois',\n  'irlandais', 'autrichien', 'grec', 'finlandais', 'suedois', 'danois', 'polonais', 'tcheque', 'slovaque', 'hongrois',\n  'roumain', 'bulgare', 'croate', 'slovene', 'estonien', 'letton', 'lituanien', 'maltais', 'chypriote', 'norvegien',\n  'islandais', 'liechtensteinois'];\nconst nat = sansAccent(p.nationalite);\nconst eee = NATIONALITES_EEE.some(n => nat.includes(n));\nconst locataire = types.has('bail');\nconst alternant = /altern|apprenti/i.test(p.formation || '');\nconst nets = docs.filter(d => d.type === 'fiche_paie').map(d => Number(d.champs?.net_a_payer) || 0);\nconst netMoyen = nets.length ? nets.reduce((a, b) => a + b, 0) / nets.length : 0;\nconst SEUIL_PRIME = 1155; // environ 78 % du Smic net depuis juin 2026 : à confirmer sur caf.fr\n\nfunction evaluer(aide) {\n  switch (aide.code) {\n    case 'apl':\n      if (!locataire) return ['non_concerne', \"Aucun bail dans tes documents.\"];\n      if (p.nationalite && !eee) return ['peut_etre', \"Hors UE : depuis le 1er juillet 2026, l'APL n'est possible que si tu es boursier.\"];\n      return ['eligible', \"Tu es locataire : la CAF peut t'aider à payer ton loyer.\"];\n    case 'visale':\n      return locataire && (age === null || age <= 30) ? ['eligible', 'Tu es étudiant et locataire : Visale peut se porter garant.']\n                                                      : ['peut_etre', aide.conditions];\n    case 'loca_pass':\n      return locataire ? ['peut_etre', 'Si tu es salarié, alternant ou boursier et que tu dois verser un dépôt de garantie.'] : ['non_concerne', 'Aucun bail dans tes documents.'];\n    case 'mobili_jeune':\n      if (alternant && locataire && (age === null || age < 30)) return ['eligible', 'Tu es en alternance, locataire et tu as moins de 30 ans.'];\n      return alternant ? ['peut_etre', aide.conditions] : ['non_concerne', \"Réservée aux alternants.\"];\n    case 'prime_activite':\n      if (netMoyen >= SEUIL_PRIME) return ['eligible', `Ton salaire moyen (${Math.round(netMoyen)} €) dépasse le seuil d'environ 78 % du Smic.`];\n      return nets.length ? ['peut_etre', 'Ton salaire semble sous le seuil : la simulation CAF tranchera.']\n                         : ['non_concerne', 'Aucune fiche de paie dans tes documents.'];\n    case 'pret_garanti':\n      if (age !== null && age >= 18 && age < 28 && eee) return ['eligible', 'Tu as moins de 28 ans et la nationalité requise.'];\n      return age === null || !p.nationalite ? ['peut_etre', aide.conditions] : ['non_concerne', aide.conditions];\n    case 'bourse_crous':\n      return types.has('avis_imposition') ? ['peut_etre', \"Le simulateur du Crous donnera ton échelon à partir de l'avis d'imposition.\"]\n                                          : ['peut_etre', \"Ajoute l'avis d'imposition de tes parents pour l'estimer.\"];\n    case 'contraception':\n      return age !== null && age < 26 ? ['eligible', 'Tu as moins de 26 ans.'] : ['peut_etre', aide.conditions];\n    case 'sante_psy':\n    case 'transports':\n    case 'repas_1_euro':\n      return ['eligible', 'Accessible à tous les étudiants.'];\n    default:\n      return ['peut_etre', aide.conditions];\n  }\n}\n\nreturn aides.map(aide => {\n  const [eligibilite, raison] = evaluer(aide);\n  const montant = aide.code === 'bourse_crous' || eligibilite === 'non_concerne' ? null : (aide.montant_max ?? null);\n  return { json: {\n    etudiant_id: p.etudiant_id,\n    aide_code: aide.code,\n    eligibilite,\n    raison_eligibilite: raison,\n    montant_estime: montant,\n    niveau: aide.niveau,\n    statut: 'proposee',\n  } };\n});\n"
+      },
+      "id": "cb9042fa-f24e-4698-a468-6602a057d4ce",
+      "name": "Calculer l'éligibilité",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3808,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "demarches",
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "528e93b0-972e-4d5f-b41b-2b8913d259a3",
+      "name": "Enregistrer les démarches proposées",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4032,
+        96
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Associe chaque document enregistré à sa photo (même ordre que le dépôt).\nconst photos = $('Vérifier et préparer').first().json.photos;\nreturn $input.all().map((item, i) => ({ json: {\n  document_id: item.json.id,\n  etudiant_id: item.json.etudiant_id,\n  nom_fichier: photos[i]?.nom_fichier || null,\n  mime: photos[i]?.mime || null,\n  contenu_base64: photos[i]?.base64 || '',\n} })).filter(x => x.json.contenu_base64);"
+      },
+      "id": "759fd0c6-c7a9-4091-a7c6-e280185395d6",
+      "name": "Préparer les photos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "documents_fichiers",
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "9fe7f896-db62-4134-a3f0-9746c4213453",
+      "name": "Ranger les photos (privé)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        288
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i => ({ json: { id: i.json.document_id, fichier_url: `documents_fichiers/${i.json.id}` } }));"
+      },
+      "id": "8be42b2c-5cec-43de-b1d6-c23675a645a0",
+      "name": "Lien vers la photo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "update",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "documents",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "dataToSend": "autoMapInputData",
+        "inputsToIgnore": "id"
+      },
+      "id": "cc1f4a12-b18b-477e-8cda-e25379721e52",
+      "name": "Enregistrer le lien de la photo",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2688,
+        288
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Dépôt des photos": {
+      "main": [
+        [
+          {
+            "node": "Vérifier et préparer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vérifier et préparer": {
+      "main": [
+        [
+          {
+            "node": "Champs de l'étudiant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Champs de l'étudiant": {
+      "main": [
+        [
+          {
+            "node": "Créer l'étudiant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer l'étudiant": {
+      "main": [
+        [
+          {
+            "node": "Répondre à l’interface",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Répondre à l’interface": {
+      "main": [
+        [
+          {
+            "node": "Découper les photos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Découper les photos": {
+      "main": [
+        [
+          {
+            "node": "Lire les documents (vision Hugging Face)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les documents (vision Hugging Face)": {
+      "main": [
+        [
+          {
+            "node": "Lire la réponse du modèle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire la réponse du modèle": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer les documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enregistrer les documents": {
+      "main": [
+        [
+          {
+            "node": "Regrouper les documents",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Préparer les photos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Regrouper les documents": {
+      "main": [
+        [
+          {
+            "node": "Contrôle croisé (LLM Hugging Face)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contrôle croisé (LLM Hugging Face)": {
+      "main": [
+        [
+          {
+            "node": "Lire les anomalies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire le profil": {
+      "main": [
+        [
+          {
+            "node": "Mettre à jour le profil",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les anomalies": {
+      "main": [
+        [
+          {
+            "node": "Anomalies par document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anomalies par document": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer les anomalies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enregistrer les anomalies": {
+      "main": [
+        [
+          {
+            "node": "Construire le profil",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mettre à jour le profil": {
+      "main": [
+        [
+          {
+            "node": "Lire le catalogue des aides",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire le catalogue des aides": {
+      "main": [
+        [
+          {
+            "node": "Calculer l'éligibilité",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculer l'éligibilité": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer les démarches proposées",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer les photos": {
+      "main": [
+        [
+          {
+            "node": "Ranger les photos (privé)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ranger les photos (privé)": {
+      "main": [
+        [
+          {
+            "node": "Lien vers la photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lien vers la photo": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer le lien de la photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "active": false
+}

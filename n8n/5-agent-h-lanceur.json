@@ -1,0 +1,336 @@
+{
+  "name": "Passerelle – 5. Agent H (lanceur)",
+  "nodes": [
+    {
+      "id": "3cb24759-0a5d-4865-9902-5f66610b1c48",
+      "name": "Démarche à confier à un agent",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        80
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "c42fdf00-0fa6-445a-8f31-fe76b787bac1",
+      "name": "Lancer l'agent H",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://agp.eu.hcompany.ai/api/v2/sessions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(Object.assign({ agent: $json.agent, messages: $json.message, timezone: 'Europe/Paris', max_time_s: 1200 }, $json.answer_format ? { overrides: { 'agent.answer_format': $json.answer_format } } : {})) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "httpBearerAuth": {
+          "name": "Bearer Auth account 2"
+        }
+      }
+    },
+    {
+      "id": "4f966d0e-16c9-4468-8235-ab575385d5e8",
+      "name": "Partager la session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://agp.eu.hcompany.ai/api/v2/sessions/{{ $json.id }}/share",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpBearerAuth": {
+          "name": "Bearer Auth account 2"
+        }
+      }
+    },
+    {
+      "id": "a59073f9-c524-4404-a3c2-5990f8b778bf",
+      "name": "Lien de la session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        80
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Range le lien de la session H dans la démarche, pour que l'interface puisse l'afficher.\nconst demande = $('Démarche à confier à un agent').first().json;\nconst session = $(\"Lancer l'agent H\").first().json;\nconst partage = $input.first().json || {};\nconst lienPublic = partage.share_url\n  ? (String(partage.share_url).startsWith('http') ? partage.share_url : 'https://agp.eu.hcompany.ai' + partage.share_url)\n  : null;\nreturn [{ json: {\n  id: demande.demarche_id,\n  resultat_agent: { agent: demande.agent, session_id: session.id || null, lien_session: session.agent_view_url || null, lien_public: lienPublic },\n  updated_at: new Date().toISOString(),\n} }];"
+      }
+    },
+    {
+      "id": "b3453526-eae5-4f89-b6df-143101cefb98",
+      "name": "Enregistrer le lien",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        896,
+        80
+      ],
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "operation": "update",
+        "tableId": "demarches",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "dataToSend": "autoMapInputData",
+        "inputsToIgnore": "id"
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "caa96463-00da-4455-80f5-8f4d351eaf8c",
+      "name": "Attendre 20 s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        80
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 20,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "62147b03-edfe-4099-94aa-fdecc0fef80e",
+      "name": "État de la session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://agp.eu.hcompany.ai/api/v2/sessions/{{ $(\"Lancer l'agent H\").first().json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "httpBearerAuth": {
+          "name": "Bearer Auth account 2"
+        }
+      }
+    },
+    {
+      "id": "e6771a8c-d233-49cf-897e-c606251ea76d",
+      "name": "Agent terminé ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1568,
+        80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ['completed', 'failed', 'timed_out', 'interrupted', 'idle'].includes($json.status?.status ?? $json.status) || $runIndex >= 60 }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "c6a26929-68ec-43ee-b5b1-756b76bea87c",
+      "name": "Résultat pour le workflow 3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        80
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Traduit la réponse de l'agent H en résultat de démarche, selon l'aide.\nconst d = $('Démarche à confier à un agent').first().json;\nconst s = $input.first().json;\nconst st = s.status?.status ?? s.status;\nlet r = s.latest_answer;\nif (typeof r === 'string') { try { r = JSON.parse(r.replace(/```json|```/g, '').trim()); } catch (e) { r = { texte: r }; } }\nr = r || {};\nconst nombre = v => (typeof v === 'number' ? v : (v !== null && v !== undefined && v !== '' && !isNaN(Number(v)) ? Number(v) : null));\nconst repondu = ['completed', 'idle'].includes(st);\nlet lienPublic = null;\ntry { lienPublic = $('Lien de la session').first().json.resultat_agent?.lien_public || null; } catch (e) {}\n\nlet statut = ['failed', 'timed_out', 'interrupted'].includes(st) ? st : 'timed_out';\nlet connexion = false;\nlet montant = null;\nlet etape = null;\n\nif (d.aide_code === 'apl') {\n  montant = nombre(r.montant_mensuel);\n  const ok = repondu && montant !== null && !String(r.statut || '').startsWith('bloqu');\n  if (ok) { statut = 'interrupted'; connexion = true; etape = 'Simulation faite : la demande se finit sur ton espace caf.fr'; }\n  else etape = r.etape_bloquante || \"La simulation APL ne s'est pas terminée\";\n} else if (d.aide_code === 'prime_activite') {\n  montant = nombre(r.montant_mensuel ?? r.montant_mensuel_estime ?? r.montant);\n  const nonEligible = r.eligible === false || /non/i.test(String(r.eligibilite || ''));\n  if (nonEligible && montant === null) montant = 0;\n  const ok = repondu && r.simulation_terminee !== false && montant !== null;\n  if (ok) { statut = 'interrupted'; connexion = true; etape = montant > 0 ? 'Simulation faite : la demande se finit sur ton espace caf.fr' : (r.raison_si_non_eligible || 'Non éligible selon le simulateur'); }\n  else etape = (r.informations_manquantes && [].concat(r.informations_manquantes).join(', ')) || \"La simulation de prime d'activité ne s'est pas terminée\";\n} else if (d.aide_code === 'bourse_crous') {\n  // Bourse versée sur 10 mois : montant mensuel = annuel / 10 si l'agent ne le donne pas.\n  const annuel = nombre(r.montant_annuel);\n  montant = nombre(r.montant_mensuel) ?? (annuel !== null ? Math.round(annuel / 10) : null);\n  const nonEligible = /non|aucun/i.test(String(r.echelon || ''));\n  if (nonEligible && montant === null) montant = 0;\n  const ok = repondu && !String(r.statut || '').startsWith('bloqu') && (r.echelon || montant !== null);\n  if (ok) { statut = 'interrupted'; connexion = true; etape = montant > 0 ? 'Simulation faite : la demande se fait sur messervices.etudiant.gouv.fr (dossier social étudiant)' : 'Pas de bourse selon le simulateur'; }\n  else etape = r.etape_bloquante || \"La simulation de bourse ne s'est pas terminée\";\n} else if (d.aide_code === 'pret_garanti') {\n  const resultats = Array.isArray(r.resultats) ? r.resultats : [];\n  const ok = repondu && resultats.length > 0;\n  if (ok) { statut = 'completed'; etape = null; }\n  else etape = 'La comparaison des prêts ne s’est pas terminée';\n} else {\n  if (repondu) { statut = 'completed'; }\n  etape = repondu ? null : \"L'agent ne s'est pas terminé\";\n}\n\nreturn [{ json: {\n  demarche_id: d.demarche_id,\n  etudiant_id: d.etudiant_id,\n  site: d.site || null,\n  agent: d.agent,\n  session_id: s.id || null,\n  statut,\n  connexion_requise: connexion,\n  debut: s.created_at || null,\n  fin: s.finished_at || new Date().toISOString(),\n  montant_lu: montant,\n  etape_bloquante: etape,\n  erreur: s.status?.error || null,\n  resultat: { reponse: r, lien_public: lienPublic, lien_session: s.agent_view_url || null },\n  url_retour: d.url_retour,\n} }];"
+      }
+    },
+    {
+      "id": "bce0a65a-9159-4ecf-9ac4-5d1c3c2a1dab",
+      "name": "Envoyer au workflow 3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2016,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url_retour }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Démarche à confier à un agent": {
+      "main": [
+        [
+          {
+            "node": "Lancer l'agent H",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lancer l'agent H": {
+      "main": [
+        [
+          {
+            "node": "Partager la session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Partager la session": {
+      "main": [
+        [
+          {
+            "node": "Lien de la session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lien de la session": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer le lien",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enregistrer le lien": {
+      "main": [
+        [
+          {
+            "node": "Attendre 20 s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attendre 20 s": {
+      "main": [
+        [
+          {
+            "node": "État de la session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "État de la session": {
+      "main": [
+        [
+          {
+            "node": "Agent terminé ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent terminé ?": {
+      "main": [
+        [
+          {
+            "node": "Résultat pour le workflow 3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Attendre 20 s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Résultat pour le workflow 3": {
+      "main": [
+        [
+          {
+            "node": "Envoyer au workflow 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "active": false
+}

@@ -1,0 +1,353 @@
+{
+  "name": "Passerelle – 3. Retour des agents",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "passerelle/resultat-agent",
+        "options": {}
+      },
+      "id": "b982af9b-defd-4b67-a041-9ca2580c3509",
+      "name": "Résultat d’un agent",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json.body || {};\nconst STATUTS_H = ['completed', 'failed', 'timed_out', 'interrupted'];\nconst connexion_requise = r.connexion_requise === true || r.statut === 'connexion_requise'\n  || /connexion|identifiant|mot de passe|login|franceconnect/i.test(r.etape_bloquante || '');\nreturn [{ json: {\n  demarche_id: r.demarche_id, etudiant_id: r.etudiant_id, site: r.site,\n  agent: r.agent || 'h/web-surfer-flash', session_id: r.session_id || null,\n  statut: STATUTS_H.includes(r.statut) ? r.statut : (connexion_requise ? 'interrupted' : 'erreur'),\n  debut: r.debut, fin: r.fin || new Date().toISOString(),\n  credits: r.credits ?? null, resultat: r.resultat ?? null,\n  montant_lu: r.montant_lu ?? null, etape_bloquante: r.etape_bloquante || null, erreur: r.erreur || null,\n  connexion_requise,\n  documents_generes: r.documents_generes ?? null,\n} }];"
+      },
+      "id": "a110978c-4518-4b18-805d-71c6c4208a19",
+      "name": "Préparer le résultat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "passages_agents",
+        "dataToSend": "autoMapInputData",
+        "inputsToIgnore": "connexion_requise,documents_generes"
+      },
+      "id": "f633073d-6ceb-4631-a5a1-7f059f26c4ea",
+      "name": "Journal des passages d'agents",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        496,
+        128
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $('Préparer le résultat').first().json;\nconst maj = {\n  demarche_id: r.demarche_id,\n  statut: r.connexion_requise ? 'connexion_requise' : (r.statut === 'completed' ? 'pret_a_valider' : 'bloquee'),\n  resultat_agent: { ...(r.resultat || {}), etape_bloquante: r.etape_bloquante, erreur: r.erreur, session_id: r.session_id },\n  updated_at: new Date().toISOString(),\n};\nif (r.montant_lu !== null) maj.montant_estime = r.montant_lu;\nif (r.documents_generes) maj.documents_generes = r.documents_generes;\nreturn [{ json: maj }];"
+      },
+      "id": "df50a2c2-4e10-4f03-86c8-f70b8566d1d6",
+      "name": "Préparer la mise à jour de la démarche",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "update",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "demarches",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.demarche_id }}"
+            }
+          ]
+        },
+        "dataToSend": "autoMapInputData",
+        "inputsToIgnore": "demarche_id"
+      },
+      "id": "8ea77d5d-9636-4019-87a3-404557ba1178",
+      "name": "Mettre à jour la démarche",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        944,
+        128
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "getAll",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "demarches",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "etudiant_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Préparer le résultat').first().json.etudiant_id }}"
+            },
+            {
+              "keyName": "niveau",
+              "condition": "eq",
+              "keyValue": "automatisee"
+            },
+            {
+              "keyName": "cochee",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "ac7a142a-808d-43d9-a107-b4cbd2d70376",
+      "name": "Lister les démarches automatisées",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        800,
+        128
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const demarches = $input.all().map(i => i.json).filter(d => d.aide_code);\nconst enAttente = demarches.filter(d => d.statut === 'en_cours');\nconst NOMS = { apl: 'APL (CAF)', prime_activite: \"Prime d'activité (CAF)\", pret_garanti: 'Comparaison de prêts étudiants', bourse_crous: 'Bourse du Crous' };\nconst ESPACE = { bourse_crous: 'ton dossier social étudiant sur messervices.etudiant.gouv.fr' };\nconst lignes = demarches.map(d => {\n  const nom = NOMS[d.aide_code] || d.aide_code;\n  if (d.statut === 'pret_a_valider') return `- ${nom} : prêt à consulter${d.montant_estime ? ` (${d.montant_estime} €)` : ''}`;\n  if (d.statut === 'connexion_requise') return `- ${nom} : simulation faite${d.montant_estime !== null && d.montant_estime !== undefined ? ` (${d.montant_estime} €/mois estimés)` : ''}, à finir sur ${ESPACE[d.aide_code] || 'ton espace caf.fr'}`;\n  if (d.statut === 'en_cours') return `- ${nom} : en cours, l'agent travaille encore`;\n  return `- ${nom} : bloqué, on te guide pour le finir`;\n});\nreturn [{ json: { tout_pret: demarches.length > 0 && enAttente.length === 0, resume: lignes.join('\\n'),\n                  etudiant_id: $('Préparer le résultat').first().json.etudiant_id } }];"
+      },
+      "id": "979a360a-69da-49e2-b5ee-7cc870ccf1ea",
+      "name": "Tout est prêt ?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.tout_pret }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4b50e24-bfc0-434a-9e02-5303d57ac5e6",
+      "name": "Toutes terminées ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "getAll",
+        "projectRef": "hnziztstifpipxrgdnop",
+        "tableId": "etudiants",
+        "limit": 1,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.etudiant_id }}"
+            }
+          ]
+        }
+      },
+      "id": "9375d800-7992-4dd7-9e24-78abe7522df5",
+      "name": "Récupérer l'email de l'étudiant",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1552,
+        128
+      ],
+      "credentials": {
+        "supabaseOAuth2Api": {
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "\"L'équipe Passerelle\" <fernandesema99@gmail.com>",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Passerelle : ton dossier est prêt",
+        "emailFormat": "text",
+        "text": "=Bonjour {{ $json.prenom }},\n\nNos agents ont fini. Voici où en sont tes démarches :\n\n{{ $('Tout est prêt ?').first().json.resume }}\n\nConnecte-toi sur Passerelle pour relire et valider. Rien n'est envoyé sans ton accord.\n\nL'équipe Passerelle",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "309b39ad-30af-47ad-87d2-6cc24523d388",
+      "name": "Email « dossier prêt »",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1776,
+        128
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "smtp": {
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Résultat d’un agent": {
+      "main": [
+        [
+          {
+            "node": "Préparer le résultat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer le résultat": {
+      "main": [
+        [
+          {
+            "node": "Journal des passages d'agents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Journal des passages d'agents": {
+      "main": [
+        [
+          {
+            "node": "Préparer la mise à jour de la démarche",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tout est prêt ?": {
+      "main": [
+        [
+          {
+            "node": "Toutes terminées ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Récupérer l'email de l'étudiant": {
+      "main": [
+        [
+          {
+            "node": "Email « dossier prêt »",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer la mise à jour de la démarche": {
+      "main": [
+        [
+          {
+            "node": "Mettre à jour la démarche",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mettre à jour la démarche": {
+      "main": [
+        [
+          {
+            "node": "Lister les démarches automatisées",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lister les démarches automatisées": {
+      "main": [
+        [
+          {
+            "node": "Tout est prêt ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Toutes terminées ?": {
+      "main": [
+        [
+          {
+            "node": "Récupérer l'email de l'étudiant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "active": false
+}
