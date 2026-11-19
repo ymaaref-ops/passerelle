@@ -78,7 +78,9 @@ function BarreLaterale({ pathname }: { pathname: string }) {
       <div className="mt-auto flex shrink-0 flex-col items-center gap-1.5 rounded-3xl bg-primary-soft p-4 text-center">
         <Headset className="size-6 text-step-blue" aria-hidden="true" />
         <p className="font-bold text-foreground">Une question ?</p>
-        <p className="text-sm leading-snug text-muted-foreground">Notre équipe est là pour t&apos;aider.</p>
+        <p className="text-sm leading-snug text-muted-foreground">Notre équipe est là
+          <br />
+          pour t&apos;aider.</p>
         <ContactSupport className="mt-1 inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring/30">
           Contacter
         </ContactSupport>
