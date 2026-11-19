@@ -184,3 +184,37 @@
     line-height: 1.6;
   }
 }
+
+/* ——— Personnage qui marche sur la barre de progression (page Agents) ——— */
+.marcheur .marcheur-jambe-a,
+.marcheur .marcheur-jambe-b,
+.marcheur .marcheur-bras {
+  transform-box: fill-box;
+  transform-origin: top center;
+}
+.marcheur-marche .marcheur-jambe-a { animation: marcheur-pas 0.7s ease-in-out infinite; }
+.marcheur-marche .marcheur-jambe-b { animation: marcheur-pas 0.7s ease-in-out infinite reverse; }
+.marcheur-marche .marcheur-bras { animation: marcheur-pas 0.7s ease-in-out infinite reverse; }
+.marcheur-marche .marcheur-corps { animation: marcheur-rebond 0.35s ease-in-out infinite alternate; }
+.marcheur-arrive .marcheur-corps { animation: marcheur-saut 0.9s ease-out infinite; }
+.marcheur-arrive .marcheur-etoiles { animation: marcheur-scintille 0.9s ease-in-out infinite alternate; }
+
+@keyframes marcheur-pas {
+  from { transform: rotate(28deg); }
+  to { transform: rotate(-28deg); }
+}
+@keyframes marcheur-rebond {
+  from { transform: translateY(0); }
+  to { transform: translateY(-1.5px); }
+}
+@keyframes marcheur-saut {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-7px); }
+}
+@keyframes marcheur-scintille {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marcheur * { animation: none !important; }
+}

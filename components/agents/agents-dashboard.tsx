@@ -9,6 +9,7 @@ import { ArrowRight } from 'lucide-react'
 import { envoyerReponseAgent, getStatutsAgents, statutsInitiaux, type AgentId } from '@/lib/agents'
 import { STEP_COLORS } from '@/lib/step-colors'
 import { cn } from '@/lib/utils'
+import { BarreMarcheur } from '@/components/barre-marcheur'
 import { AgentCard } from './agent-card'
 import { NotificationAgents } from './notification-agents'
 
@@ -89,19 +90,11 @@ export function AgentsDashboard() {
             </p>
             <p className="text-sm text-muted-foreground tabular-nums">{progressionGlobale} %</p>
           </div>
-          <div
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={progressionGlobale}
-            aria-label={`Progression globale : ${termines} sur ${total} agents terminés`}
-            className="h-3 overflow-hidden rounded-full bg-foreground/10"
-          >
-            <div
-              className={cn('h-full rounded-full transition-[width] duration-1000 ease-linear', COULEUR.solid)}
-              style={{ width: `${progressionGlobale}%` }}
-            />
-          </div>
+          <BarreMarcheur
+            valeur={progressionGlobale}
+            label={`Progression globale : ${termines} sur ${total} agents terminés`}
+            couleur={COULEUR.solid}
+          />
         </div>
       </header>
 
