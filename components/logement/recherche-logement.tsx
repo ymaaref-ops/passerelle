@@ -181,6 +181,17 @@ function CarteLogement({
 
         {ouvert && (
           <div className="flex flex-col gap-3 border-t border-foreground/10 pt-3 text-sm">
+            {l.url && (
+              <a
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-10 items-center justify-center gap-1.5 self-start rounded-full bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90"
+              >
+                Voir l&apos;annonce
+                <ExternalLink className="size-4" aria-hidden="true" />
+              </a>
+            )}
             {l.description && <p className="leading-relaxed text-foreground">{l.description}</p>}
             <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
               <dt className="text-muted-foreground">Loyer charges comprises</dt>
@@ -213,17 +224,6 @@ function CarteLogement({
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 {alertes.join(' · ')}
               </p>
-            )}
-            {l.url && (
-              <a
-                href={l.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-10 items-center justify-center gap-1.5 self-start rounded-full bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90"
-              >
-                Voir l&apos;annonce
-                <ExternalLink className="size-4" aria-hidden="true" />
-              </a>
             )}
           </div>
         )}
@@ -474,7 +474,7 @@ export function RechercheLogement() {
                 {trouves.length} logement{trouves.length > 1 ? 's' : ''} trouvé{trouves.length > 1 ? 's' : ''}
               </h2>
               <CarteGeo logements={trouves} ville={ville} onPlusInfos={plusInfos} />
-              <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <ul className="grid items-start gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {trouves.map((l, i) => (
                   <CarteLogement
                     key={l.url ?? i}
