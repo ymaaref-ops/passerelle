@@ -127,6 +127,8 @@ export function SituationForm() {
   const [telephone, setTelephone] = useState('')
   // Le téléphone n'est demandé que s'il manque dans le profil.
   const [telephoneDemande, setTelephoneDemande] = useState(false)
+  // Code postal du lieu de résidence : demandé par les simulateurs de la CAF, même sans bail.
+  const [codePostal, setCodePostal] = useState('')
   const [activite, setActivite] = useState<Activite | ''>('')
   const [bourse, setBourse] = useState<Bourse | ''>('')
   const [ressources, setRessources] = useState('')
@@ -152,6 +154,10 @@ export function SituationForm() {
     lireMonCompte()
       .then((c) => {
         setTelephoneDemande(!c.profil?.telephone)
+        const cp =
+          (c.profil as { code_postal?: string | null } | null)?.code_postal ||
+          (String(c.profil?.adresse_logement ?? '').match(/\b\d{5}\b/) ?? [])[0]
+        if (cp) setCodePostal((actuel) => actuel || cp)
         if (!q?.email_demarches && c.questionnaire?.email_demarches) setEmail(c.questionnaire.email_demarches)
       })
       .catch(() => undefined)
@@ -164,11 +170,13 @@ export function SituationForm() {
   const emailOk = EMAIL_VALIDE.test(email.trim())
   // Facultatif : vide, il ne bloque pas ; rempli, il doit ressembler à un numéro.
   const telephoneOk = !telephoneDemande || telephone.trim() === '' || /^[+\d][\d\s.-]{8,}$/.test(telephone.trim())
+  const codePostalOk = /^\d{5}$/.test(codePostal.trim())
   const enfantsOk = famille !== '' && Number.isInteger(Number(enfants)) && Number(enfants) >= 0
   const complet =
     typeLogement !== '' &&
     (!bailDemande || bailSigne !== '') &&
     zone !== '' &&
+    codePostalOk &&
     enfantsOk &&
     emailOk &&
     telephoneOk &&
@@ -205,7 +213,10 @@ export function SituationForm() {
     }
     enregistrerQuestionnaireLocal(questionnaire)
     void enregistrerQuestionnaireCompte(questionnaire).catch(() => undefined)
-    if (telephoneDemande && telephone.trim()) void enregistrerProfil({ telephone: telephone.trim() }).catch(() => undefined)
+    void enregistrerProfil({
+      code_postal: codePostal.trim(),
+      ...(telephoneDemande && telephone.trim() ? { telephone: telephone.trim() } : {}),
+    }).catch(() => undefined)
     router.push('/documents')
   }
 
@@ -225,6 +236,23 @@ export function SituationForm() {
             className={cn(classeChamp, 'max-w-md')}
           />
           {email.trim() !== '' && !emailOk && <span className="text-sm text-danger">Cette adresse n&apos;est pas valide.</span>}
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-lg font-bold text-foreground">Ton code postal</span>
+          <span className="text-sm text-muted-foreground">
+            Là où tu habites aujourd&apos;hui (chez toi ou chez tes parents). La CAF le demande dans ses simulateurs.
+          </span>
+          <input
+            inputMode="numeric"
+            autoComplete="postal-code"
+            maxLength={5}
+            value={codePostal}
+            onChange={(e) => setCodePostal(e.target.value.replace(/\D/g, ''))}
+            className={cn(classeChamp, 'max-w-[10rem]')}
+          />
+          {codePostal !== '' && !codePostalOk && (
+            <span className="text-sm text-danger">Le code postal fait 5 chiffres.</span>
+          )}
         </label>
         {telephoneDemande && (
           <label className="flex flex-col gap-1.5">

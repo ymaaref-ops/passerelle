@@ -36,6 +36,7 @@ export interface ProfilEtudiant {
   etablissement: string | null
   formation: string | null
   adresse_logement: string | null
+  code_postal?: string | null
   type_logement: string | null
   loyer_hors_charges: number | null
   charges: number | null

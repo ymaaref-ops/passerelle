@@ -62,6 +62,7 @@ const CHAMPS: Champ[] = [
   { cle: 'etablissement', libelle: 'Établissement' },
   { cle: 'formation', libelle: 'Formation', aide: 'Précise « en alternance » si c’est le cas' },
   { cle: 'adresse_logement', libelle: 'Adresse du logement' },
+  { cle: 'code_postal', libelle: 'Code postal (où tu habites)', aide: '5 chiffres. La CAF le demande dans ses simulateurs.' },
   { cle: 'type_logement', libelle: 'Type de logement', aide: 'Par exemple : studio meublé, colocation…' },
   { cle: 'loyer_hors_charges', libelle: 'Loyer hors charges (€)', type: 'number' },
   { cle: 'charges', libelle: 'Charges (€)', type: 'number' },
