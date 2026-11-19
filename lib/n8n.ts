@@ -75,7 +75,11 @@ export interface EtatN8n {
 }
 
 /** Envoie les aides cochées au workflow 2, qui lance les agents H. Renvoie le nombre d'aides envoyées. */
-export async function lancerDemarches(selection: Iterable<string>, montantPret?: number): Promise<number> {
+export async function lancerDemarches(
+  selection: Iterable<string>,
+  montantPret?: number,
+  questionnaire?: { email_demarches: string; reponses: Record<string, string | number | boolean | null> },
+): Promise<number> {
   if (!getEtudiantId()) throw new Error("Dépose d'abord tes documents pour lancer tes démarches.")
   const choisies = [...selection]
   const aides = [...new Set(choisies.map((id) => CODES_N8N[id]).filter(Boolean))]
@@ -91,6 +95,9 @@ export async function lancerDemarches(selection: Iterable<string>, montantPret?:
       banques: banques.join(','),
       montant: montantPret ?? null,
       consentement: 'true',
+      // Questions complémentaires (spécification d'Ema) : à fusionner dans profil_complet côté n8n.
+      email_demarches: questionnaire?.email_demarches ?? null,
+      questionnaire_reponses: questionnaire?.reponses ?? {},
     }),
   })
   if (!reponse.ok) throw new Error(`Passerelle n'a pas pu lancer les agents (erreur ${reponse.status}).`)

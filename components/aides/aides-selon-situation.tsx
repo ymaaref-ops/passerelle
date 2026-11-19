@@ -6,12 +6,17 @@ import { ArrowRight, Search } from 'lucide-react'
 import { AidesNonConcernees, AidesSection } from '@/components/aides/aides-section'
 import { lireSituation, type Situation } from '@/lib/session'
 import { ajusterSelonSituation, type AidesParStatut } from '@/lib/situation-aides'
+import { lireQuestionnaire, type Reponses } from '@/lib/questionnaire'
 
 /** Liste des aides adaptée à la situation donnée par l'étudiant, avec l'agent logement s'il en cherche un. */
 export function AidesSelonSituation(aides: AidesParStatut) {
   const [situation, setSituation] = useState<Situation | null>(null)
-  useEffect(() => setSituation(lireSituation()), [])
-  const { droit, peutEtre, nonConcerne } = ajusterSelonSituation(aides, situation)
+  const [reponses, setReponses] = useState<Reponses | null>(null)
+  useEffect(() => {
+    setSituation(lireSituation())
+    setReponses(lireQuestionnaire()?.reponses ?? null)
+  }, [])
+  const { droit, peutEtre, nonConcerne } = ajusterSelonSituation(aides, situation, reponses)
 
   return (
     <>

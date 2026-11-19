@@ -6,17 +6,20 @@ import { ChoixForm } from '@/components/choix/choix-form'
 import { lireMonCompte } from '@/lib/compte'
 import type { AideEvaluee } from '@/lib/eligibilite'
 import { aidesReelles } from '@/lib/eligibilite-reelle'
+import { contexteDepuis, type Contexte } from '@/lib/questionnaire'
+import { lireSituation } from '@/lib/session'
 
 /** Choix des démarches à partir de l'éligibilité calculée sur les documents de l'étudiant. */
 export function ChoixReel() {
-  const [aides, setAides] = useState<{ droit: AideEvaluee[]; peutEtre: AideEvaluee[] } | null>(null)
+  const [aides, setAides] = useState<{ droit: AideEvaluee[]; peutEtre: AideEvaluee[]; contexte: Contexte } | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
 
   useEffect(() => {
     lireMonCompte()
       .then((c) => {
         const { droit, peutEtre } = aidesReelles(c.eligibilite)
-        setAides({ droit, peutEtre })
+        const ressources = lireSituation()?.ressources ?? c.profil?.ressources_12_mois ?? null
+        setAides({ droit, peutEtre, contexte: contexteDepuis(c.documents, ressources, c.profil?.etablissement ?? null) })
       })
       .catch((e) => setErreur(e instanceof Error ? e.message : 'Tes aides ne peuvent pas être chargées.'))
   }, [])
@@ -36,5 +39,5 @@ export function ChoixReel() {
       </p>
     )
   }
-  return <ChoixForm droit={aides.droit} peutEtre={aides.peutEtre} />
+  return <ChoixForm droit={aides.droit} peutEtre={aides.peutEtre} contexte={aides.contexte} />
 }

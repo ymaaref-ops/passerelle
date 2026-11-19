@@ -4,6 +4,7 @@
  */
 import { oublierEtudiantId, setEtudiantId, type DocumentN8n } from '@/lib/n8n'
 import { lireSituation, type Situation } from '@/lib/session'
+import { CLE_QUESTIONNAIRE, lireQuestionnaire, type Questionnaire } from '@/lib/questionnaire'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://hnziztstifpipxrgdnop.supabase.co'
 /** Clé publique (publishable) : prévue pour être utilisée dans le navigateur. */
@@ -56,6 +57,8 @@ export interface MonCompte {
   inscrit_le: string | null
   etudiant_id: string | null
   situation: Situation | null
+  /** Questions complémentaires (spécification d'Ema). */
+  questionnaire?: { email_demarches: string | null; reponses: Questionnaire['reponses']; mis_a_jour?: string } | null
   profil: ProfilEtudiant | null
   documents: DocumentEnregistre[]
   eligibilite: EligibiliteReelle[]
@@ -69,6 +72,7 @@ function reinitialiserLocal() {
   try {
     window.sessionStorage.removeItem('passerelle_documents_valides')
     window.sessionStorage.removeItem('passerelle_situation')
+    window.sessionStorage.removeItem(CLE_QUESTIONNAIRE)
     window.sessionStorage.removeItem(CLE_SYNCHRO)
   } catch {
     // rien
@@ -290,6 +294,13 @@ export async function synchroniserCompte(): Promise<void> {
     if (compte.situation && !lireSituation()) {
       window.sessionStorage.setItem('passerelle_situation', JSON.stringify(compte.situation))
     }
+    if (compte.questionnaire?.reponses && !lireQuestionnaire()) {
+      const q: Questionnaire = {
+        email_demarches: compte.questionnaire.email_demarches ?? compte.email ?? '',
+        reponses: compte.questionnaire.reponses,
+      }
+      window.sessionStorage.setItem(CLE_QUESTIONNAIRE, JSON.stringify(q))
+    }
     window.sessionStorage.setItem(CLE_SYNCHRO, 'oui')
   } catch {
     // Stockage indisponible.
@@ -299,6 +310,11 @@ export async function synchroniserCompte(): Promise<void> {
 /** Garde la situation dans le compte, pour ne pas la redemander à la prochaine visite. */
 export function enregistrerSituationCompte(situation: Situation): Promise<unknown> {
   return appelCompte({ action: 'enregistrer_situation', situation })
+}
+
+/** Garde les réponses aux questions complémentaires dans le compte (et sur le dossier, pour n8n). */
+export function enregistrerQuestionnaireCompte(q: Questionnaire): Promise<unknown> {
+  return appelCompte({ action: 'enregistrer_questionnaire', email_demarches: q.email_demarches, reponses: q.reponses })
 }
 
 /** Enregistre les informations remplies ou corrigées dans le profil (lues ensuite par les agents). */

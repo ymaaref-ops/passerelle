@@ -10,17 +10,33 @@ import {
   construireRecapitulatif,
   estUnPret,
 } from '@/lib/choix'
+import { enregistrerQuestionnaireCompte, sessionCourante } from '@/lib/compte'
 import { lancerDemarches } from '@/lib/n8n'
+import {
+  CONTEXTE_VIDE,
+  champsManquants,
+  completerDefauts,
+  enregistrerQuestionnaireLocal,
+  lireQuestionnaire,
+  reponsesAEnvoyer,
+  tiroirDe,
+  type Contexte,
+  type Reponses,
+  type Valeur,
+} from '@/lib/questionnaire'
 import { lireSituation, type Situation } from '@/lib/session'
 import { ajusterSelonSituation } from '@/lib/situation-aides'
 import { cn } from '@/lib/utils'
 import { AideChoix } from './aide-choix'
 import { MontantPret } from './montant-pret'
+import { QuestionsAide } from './questions-aide'
 import { RecapAgents } from './recap-agents'
 
 interface ChoixFormProps {
   droit: AideEvaluee[]
   peutEtre: AideEvaluee[]
+  /** Ce que les documents et le profil disent déjà : évite de reposer ces questions. */
+  contexte?: Contexte
 }
 
 function TitreSection({
@@ -55,13 +71,22 @@ function TitreSection({
   )
 }
 
-export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial }: ChoixFormProps) {
+export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial, contexte = CONTEXTE_VIDE }: ChoixFormProps) {
   // Ne propose que les aides qui correspondent à la situation donnée par l'étudiant.
   const [situation, setSituation] = useState<Situation | null>(null)
-  useEffect(() => setSituation(lireSituation()), [])
+  // Réponses aux questions complémentaires (étape Situation + questions des aides cochées).
+  const [reponses, setReponses] = useState<Reponses>({})
+  const [emailDemarches, setEmailDemarches] = useState('')
+  useEffect(() => {
+    setSituation(lireSituation())
+    const q = lireQuestionnaire()
+    setReponses(q?.reponses ?? {})
+    setEmailDemarches(q?.email_demarches || sessionCourante()?.email || '')
+  }, [])
   const { droit, peutEtre } = useMemo(
-    () => ajusterSelonSituation({ droit: droitInitial, peutEtre: peutEtreInitial, nonConcerne: [] }, situation),
-    [droitInitial, peutEtreInitial, situation],
+    () =>
+      ajusterSelonSituation({ droit: droitInitial, peutEtre: peutEtreInitial, nonConcerne: [] }, situation, reponses),
+    [droitInitial, peutEtreInitial, situation, reponses],
   )
   const [selection, setSelection] = useState<ReadonlySet<string>>(() => new Set(SELECTION_PAR_DEFAUT))
   const [montant, setMontant] = useState(MONTANT_PAR_DEFAUT)
@@ -78,6 +103,13 @@ export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial }: Ch
   )
   const unPretEstCoche = aides.some((a) => estUnPret(a) && selection.has(a.id))
 
+  // Questions à poser : celles des aides cochées, avec les valeurs proposées d'office.
+  const choisies = useMemo(() => aides.filter((a) => selection.has(a.id)).map((a) => a.id), [aides, selection])
+  const effectives = useMemo(() => completerDefauts(choisies, reponses, contexte), [choisies, reponses, contexte])
+  const tiroirs = choisies.flatMap((id) => tiroirDe(id) ?? [])
+  const manquants = useMemo(() => champsManquants(choisies, effectives, contexte), [choisies, effectives, contexte])
+  const repondre = (cle: string, v: Valeur) => setReponses((r) => ({ ...completerDefauts(choisies, r, contexte), [cle]: v }))
+
   const basculer = (id: string, coche: boolean) => {
     setSelection((precedente) => {
       const suivante = new Set(precedente)
@@ -87,7 +119,7 @@ export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial }: Ch
     })
   }
 
-  const peutLancer = accord && selection.size > 0
+  const peutLancer = accord && selection.size > 0 && manquants.length === 0
   const parametres = new URLSearchParams({ aides: [...selection].join(',') })
   if (unPretEstCoche) parametres.set('montant', String(montant))
 
@@ -96,7 +128,11 @@ export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial }: Ch
     setEnvoi(true)
     setErreur(null)
     try {
-      await lancerDemarches(selection, unPretEstCoche ? montant : undefined)
+      // Gardé pour la prochaine visite, puis envoyé avec les aides (seulement les questions affichées).
+      enregistrerQuestionnaireLocal({ email_demarches: emailDemarches, reponses: effectives })
+      const questionnaire = { email_demarches: emailDemarches, reponses: reponsesAEnvoyer(choisies, effectives, contexte) }
+      await enregistrerQuestionnaireCompte(questionnaire).catch(() => undefined)
+      await lancerDemarches(choisies, unPretEstCoche ? montant : undefined, questionnaire)
       router.push(`/agents?${parametres.toString()}`)
     } catch (e) {
       setErreur(e instanceof Error ? e.message : "Les agents n'ont pas pu être lancés.")
@@ -148,6 +184,29 @@ export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial }: Ch
           ))}
         </ul>
       </section>
+
+      {tiroirs.length > 0 && (
+        <section aria-labelledby="titre-questions" className="flex flex-col gap-4">
+          <div>
+            <h2 id="titre-questions" className="text-xl font-bold text-foreground">
+              Encore quelques questions
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Les agents en ont besoin pour remplir tes demandes. Les réponses les plus courantes sont déjà cochées.
+            </p>
+          </div>
+          {tiroirs.map((t) => (
+            <QuestionsAide
+              key={t.aide}
+              tiroir={t}
+              reponses={effectives}
+              contexte={contexte}
+              afficherErreurs={accord}
+              onChange={repondre}
+            />
+          ))}
+        </section>
+      )}
 
       <RecapAgents recap={recap} />
 
@@ -218,7 +277,11 @@ export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial }: Ch
             <p id="aide-bouton" className="text-sm text-muted-foreground">
               {selection.size === 0
                 ? 'Coche au moins une démarche pour continuer.'
-                : 'Coche la case ci-dessus pour pouvoir continuer.'}
+                : manquants.length > 0
+                  ? `Il reste ${manquants.length} question${manquants.length > 1 ? 's' : ''} à remplir (${[
+                      ...new Set(manquants.map((m) => tiroirDe(m.aide)?.titre)),
+                    ].join(', ')}).`
+                  : 'Coche la case ci-dessus pour pouvoir continuer.'}
             </p>
           )}
         </div>
