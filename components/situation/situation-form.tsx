@@ -161,7 +161,8 @@ export function SituationForm() {
   const ressourcesOk = !revenusDemandes || (ressources.trim() !== '' && Number(ressources) >= 0)
   const bailDemande = typeLogement === 'prive' || typeLogement === 'crous'
   const emailOk = EMAIL_VALIDE.test(email.trim())
-  const telephoneOk = !telephoneDemande || /^[+\d][\d\s.-]{8,}$/.test(telephone.trim())
+  // Facultatif : vide, il ne bloque pas ; rempli, il doit ressembler à un numéro.
+  const telephoneOk = !telephoneDemande || telephone.trim() === '' || /^[+\d][\d\s.-]{8,}$/.test(telephone.trim())
   const enfantsOk = famille !== '' && Number.isInteger(Number(enfants)) && Number(enfants) >= 0
   const complet =
     typeLogement !== '' &&
@@ -198,12 +199,12 @@ export function SituationForm() {
         nationalite_zone: zone as ZoneNationalite,
         situation_familiale: famille as SituationFamiliale,
         enfants_a_charge: Number(enfants),
-        ...(telephoneDemande ? { telephone: telephone.trim() } : {}),
+        ...(telephoneDemande && telephone.trim() ? { telephone: telephone.trim() } : {}),
       },
     }
     enregistrerQuestionnaireLocal(questionnaire)
     void enregistrerQuestionnaireCompte(questionnaire).catch(() => undefined)
-    if (telephoneDemande) void enregistrerProfil({ telephone: telephone.trim() }).catch(() => undefined)
+    if (telephoneDemande && telephone.trim()) void enregistrerProfil({ telephone: telephone.trim() }).catch(() => undefined)
     router.push('/documents')
   }
 
@@ -226,8 +227,10 @@ export function SituationForm() {
         </label>
         {telephoneDemande && (
           <label className="flex flex-col gap-1.5">
-            <span className="text-lg font-bold text-foreground">Ton numéro de téléphone</span>
-            <span className="text-sm text-muted-foreground">Demandé par la CAF et le Crous.</span>
+            <span className="text-lg font-bold text-foreground">
+              Ton numéro de téléphone <span className="font-normal text-muted-foreground">(facultatif)</span>
+            </span>
+            <span className="text-sm text-muted-foreground">Demandé par la CAF et le Crous : tu pourras l&apos;ajouter plus tard.</span>
             <input
               type="tel"
               autoComplete="tel"
@@ -235,6 +238,7 @@ export function SituationForm() {
               onChange={(e) => setTelephone(e.target.value)}
               className={cn(classeChamp, 'max-w-xs')}
             />
+            {!telephoneOk && <span className="text-sm text-danger">Ce numéro n&apos;est pas valide.</span>}
           </label>
         )}
       </div>
