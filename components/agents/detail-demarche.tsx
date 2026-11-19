@@ -6,6 +6,7 @@ import { ChevronDown, CircleAlert, CircleCheck, Circle, ExternalLink, Loader2 } 
 import type { AgentId, AgentStatut } from '@/lib/agents'
 import { adresseFenetre, ouvrirFenetre } from '@/lib/fenetre'
 import { cn } from '@/lib/utils'
+import { CompteRenduAgent } from '@/components/compte-rendu-agent'
 
 type Etat = 'fait' | 'encours' | 'bloque' | 'reste'
 
@@ -123,10 +124,10 @@ export function DetailDemarche({ agent }: { agent: AgentStatut }) {
           </ol>
 
           {agent.remarques && (
-            <p className="rounded-2xl bg-card/70 p-3 text-sm text-foreground">
-              <span className="font-semibold">Remarque du simulateur : </span>
-              {agent.remarques}
-            </p>
+            <div className="rounded-2xl bg-card/70 p-3 text-sm text-foreground">
+              <p className="mb-1 font-semibold">Compte rendu du simulateur</p>
+              <CompteRenduAgent texte={agent.remarques} />
+            </div>
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">

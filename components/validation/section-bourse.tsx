@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ExternalLink, GraduationCap, Loader2 } from 'lucide-react'
 import { lireEtat } from '@/lib/n8n'
+import { CompteRenduAgent } from '@/components/compte-rendu-agent'
 
 interface ResultatBourse {
   statut: string
@@ -99,7 +100,7 @@ export function SectionBourse() {
                 )}
               </>
             )}
-            {r!.remarques && <p className="mt-2 text-sm text-muted-foreground">{r!.remarques}</p>}
+            {r!.remarques && <CompteRenduAgent texte={r!.remarques} className="mt-3 text-foreground/80" />}
           </div>
         )}
         {r && !enCours && !reussi && (

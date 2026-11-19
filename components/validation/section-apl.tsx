@@ -7,6 +7,7 @@ import { useProfilCourant } from '@/lib/profil-courant'
 import { lireEtat } from '@/lib/n8n'
 import { BoutonEnvoi } from './bouton-envoi'
 import { DemandeAplCaf } from './demande-apl-caf'
+import { CompteRenduAgent } from '@/components/compte-rendu-agent'
 
 interface SectionAplProps {
   envoyeeLe?: string
@@ -188,9 +189,13 @@ export function SectionApl({ envoyeeLe, onEnvoyer }: SectionAplProps) {
           </div>
           <div className="flex flex-col gap-2 rounded-3xl bg-card shadow-carte p-6">
             <p className="text-sm font-semibold text-foreground">Ce que l&apos;agent a fait sur caf.fr</p>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {remarques ?? "Le compte rendu de l'agent apparaîtra ici une fois la simulation terminée."}
-            </p>
+            {remarques ? (
+              <CompteRenduAgent texte={remarques} className="text-muted-foreground" />
+            ) : (
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Le compte rendu de l&apos;agent apparaîtra ici une fois la simulation terminée.
+              </p>
+            )}
           </div>
         </div>
 

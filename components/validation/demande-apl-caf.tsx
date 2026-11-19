@@ -5,6 +5,7 @@ import { Ban, CheckCircle2, ExternalLink, FileSignature, Loader2, TriangleAlert 
 import { getEtudiantId, lireEtat, type DemandeCaf } from '@/lib/n8n'
 import { COMPTE_DEMANDE_CAF, lancerDemandeCaf, refuserDemandeCaf } from '@/lib/demande-caf'
 import { adresseFenetre, ouvrirFenetre } from '@/lib/fenetre'
+import { CompteRenduAgent } from '@/components/compte-rendu-agent'
 
 const INTERVALLE_MS = 15_000
 
@@ -160,9 +161,7 @@ export function DemandeAplCaf({ email, simulationFaite }: { email: string | null
           {demande?.recapitulatif && (
             <div className="rounded-2xl border border-border bg-card p-4">
               <p className="text-sm font-semibold text-foreground">Récapitulatif affiché par la CAF</p>
-              <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-                {demande.recapitulatif}
-              </p>
+              <CompteRenduAgent texte={demande.recapitulatif} className="mt-1 text-muted-foreground" />
             </div>
           )}
           {!!demande?.questions_sans_reponse?.length && (
