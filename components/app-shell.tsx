@@ -84,7 +84,6 @@ function BarreLaterale({ pathname }: { pathname: string }) {
         <ContactSupport className="mt-1 inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring/30">
           Contacter
         </ContactSupport>
-        <p className="text-xs break-all text-muted-foreground">{EMAIL_SUPPORT}</p>
       </div>
     </aside>
   )
