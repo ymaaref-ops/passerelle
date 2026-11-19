@@ -109,10 +109,19 @@ export async function lancerDemarches(
 /** Lit l'état de l'étudiant (démarches, statuts, montants) depuis le workflow 4. */
 export async function lireEtat(): Promise<EtatN8n> {
   if (!getEtudiantId()) return { demarches: [] }
-  const reponse = await fetch(
-    `${N8N_URL}/passerelle/etat?etudiant_id=${encodeURIComponent(getEtudiantId())}`,
-    { cache: 'no-store' },
-  )
+  return lireEtatDossier(getEtudiantId())
+}
+
+/**
+ * État d'un dossier (démarches et documents), lu directement dans Supabase par la fonction « etat ».
+ * Avant, l'interface interrogeait n8n toutes les quelques secondes : chaque appel comptait comme une
+ * exécution de l'abonnement n8n, ce qui a épuisé le quota.
+ */
+const URL_ETAT =
+  (process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://hnziztstifpipxrgdnop.supabase.co') + '/functions/v1/etat'
+
+async function lireEtatDossier(etudiantId: string): Promise<EtatDocumentsN8n> {
+  const reponse = await fetch(`${URL_ETAT}?etudiant_id=${encodeURIComponent(etudiantId)}`, { cache: 'no-store' })
   if (!reponse.ok) throw new Error(`Passerelle ne répond pas (erreur ${reponse.status}).`)
   return reponse.json()
 }
@@ -141,10 +150,5 @@ export async function deposerDocuments(donnees: FormData): Promise<string> {
 
 /** Lit l'état d'un étudiant précis (documents lus, anomalies, démarches). */
 export async function lireEtatEtudiant(etudiantId: string): Promise<EtatDocumentsN8n> {
-  const reponse = await fetch(
-    `${N8N_URL}/passerelle/etat?etudiant_id=${encodeURIComponent(etudiantId)}`,
-    { cache: 'no-store' },
-  )
-  if (!reponse.ok) throw new Error(`Passerelle ne répond pas (erreur ${reponse.status}).`)
-  return reponse.json()
+  return lireEtatDossier(etudiantId)
 }
