@@ -1,7 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
-import { SiteHeader } from '@/components/site-header'
+import { AppShell } from '@/components/app-shell'
 import { ProgressSteps } from '@/components/progress-steps'
 import { GardeCompte } from '@/components/compte/garde-compte'
 import './globals.css'
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: 'light',
-  themeColor: '#1b3a8a',
+  themeColor: '#1e1b6b',
   width: 'device-width',
   initialScale: 1,
 }
@@ -42,11 +42,10 @@ export default function RootLayout({
   return (
     <html lang="fr" className={jakarta.variable}>
       <body className="min-h-dvh antialiased">
-        <SiteHeader />
-        <ProgressSteps />
-        <main>
+        <AppShell>
+          <ProgressSteps />
           <GardeCompte>{children}</GardeCompte>
-        </main>
+        </AppShell>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

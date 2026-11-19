@@ -3,10 +3,16 @@ import { ArrowRight } from 'lucide-react'
 import { Hero } from '@/components/home/hero'
 import { HowItWorks } from '@/components/home/how-it-works'
 import { AidesCatalogue } from '@/components/home/aides-catalogue'
+import { Accueil } from '@/components/home/accueil'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 export default function HomePage() {
+  // Connecté : tableau de bord. Sinon : présentation de Passerelle.
+  return <Accueil presentation={<Presentation />} />
+}
+
+function Presentation() {
   return (
     <>
       <Hero />

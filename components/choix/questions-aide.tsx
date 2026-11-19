@@ -1,6 +1,6 @@
 'use client'
 
-import { ClipboardList, FileCheck2 } from 'lucide-react'
+import { ClipboardList, FileCheck } from 'lucide-react'
 import {
   champVisible,
   erreurChamp,
@@ -80,7 +80,7 @@ function ChampQuestion({
       {champ.aide && <span className="text-sm text-muted-foreground">{champ.aide}</span>}
       {lue !== null && (
         <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-step-green-soft px-2.5 py-0.5 text-xs font-semibold text-step-green">
-          <FileCheck2 className="size-3.5" aria-hidden="true" />
+          <FileCheck className="size-3.5" aria-hidden="true" />
           {valeur === lue
             ? 'Rempli à partir de tes documents : vérifie et corrige si besoin'
             : `Sur tes documents : ${
