@@ -153,7 +153,11 @@ export function DemandeAgent({ aide }: { aide: 'visale' | 'mobili_jeune' }) {
           {etat?.lien && (
             <button
               type="button"
-              onClick={() => ouvrirFenetre(etat.lien as string)}
+              onClick={() =>
+                ouvrirFenetre(
+                  `/fenetre-agent?session=${encodeURIComponent(sessionId ?? '')}&lien=${encodeURIComponent(etat.lien as string)}`,
+                )
+              }
               className="inline-flex h-11 items-center justify-center gap-2 self-start rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring/30"
             >
               <ExternalLink className="size-4" aria-hidden="true" />

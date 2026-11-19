@@ -16,6 +16,7 @@ export const ETAPES: { href: string; label: string; couleur: StepColor }[] = [
 
 export function ProgressSteps() {
   const pathname = usePathname()
+  if (pathname === '/fenetre-agent') return null
   const indexCourant = ETAPES.findIndex((e) => pathname === e.href || pathname.startsWith(`${e.href}/`))
   const enCours = indexCourant >= 0
   const pourcentage = enCours ? ((indexCourant + 1) / ETAPES.length) * 100 : 0
