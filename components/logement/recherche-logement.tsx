@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, ArrowLeft, ChevronDown, ExternalLink, Home, Loader2, MapPin, Search, Send } from 'lucide-react'
 import { ChargementEtudiant } from '@/components/chargement-etudiant'
-import { JeuAttente } from '@/components/jeu-attente'
+import { MorpionEtudes } from '@/components/morpion-etudes'
 import { buttonVariants } from '@/components/ui/button'
 import {
   lancerRecherche,
@@ -392,8 +392,8 @@ export function RechercheLogement() {
                   </p>
                 </div>
               </div>
-              <JeuAttente
-                titre="Pendant la recherche, joue un peu !"
+              <MorpionEtudes
+                titre="Pendant la recherche, un morpion contre le robot ?"
                 note="L'agent continue de chercher pendant que tu joues : les logements s'affichent ici dès qu'il a fini."
               />
             </>
