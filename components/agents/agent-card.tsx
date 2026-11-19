@@ -1,10 +1,11 @@
 'use client'
 
-import { BriefcaseBusiness, CircleCheck, Globe, Home, KeyRound, Landmark, ShieldCheck, GraduationCap } from 'lucide-react'
+import { BriefcaseBusiness, CircleAlert, CircleCheck, Globe, Home, KeyRound, Landmark, ShieldCheck, GraduationCap } from 'lucide-react'
 import type { AgentId, AgentStatut } from '@/lib/agents'
 import { cn } from '@/lib/utils'
 import { BarreMarcheur } from '@/components/barre-marcheur'
 import { DemandeAgent } from './demande-agent'
+import { DetailDemarche } from './detail-demarche'
 import { FormulaireAgent } from './formulaire-agent'
 import { STYLES_STATUT, StatutBadge } from './statut-badge'
 
@@ -24,7 +25,9 @@ interface AgentCardProps {
 
 export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
   const Icone = ICONES[agent.id]
-  const style = STYLES_STATUT[agent.statut]
+  const style = agent.interrompu
+    ? { ...STYLES_STATUT.termine, barre: 'bg-step-orange', carte: 'border-step-orange-border bg-step-orange-soft' }
+    : STYLES_STATUT[agent.statut]
   const idTitre = `titre-${agent.id}`
 
   return (
@@ -56,7 +59,14 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
             </p>
           </div>
         </div>
-        <StatutBadge statut={agent.statut} />
+        {agent.interrompu ? (
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-step-orange-border bg-card px-3 py-1 text-sm font-semibold text-step-orange">
+            <CircleAlert className="size-4" aria-hidden="true" />
+            À finir
+          </span>
+        ) : (
+          <StatutBadge statut={agent.statut} />
+        )}
       </header>
 
       {agent.bientot ? (
@@ -66,7 +76,17 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
       <div className="flex min-h-20 flex-col justify-center gap-2">
         {agent.statut === 'besoin' && <FormulaireAgent key={agent.id} agent={agent} onEnvoyer={onEnvoyer} />}
 
-        {agent.statut === 'termine' && (
+        {agent.statut === 'termine' && agent.interrompu && (
+          <>
+            <p className="flex items-center gap-2 text-sm font-semibold text-step-orange">
+              <CircleAlert className="size-4" aria-hidden="true" />
+              L&apos;agent s&apos;est arrêté à
+            </p>
+            <p className="text-xl font-bold leading-tight text-foreground">{agent.resultat}</p>
+          </>
+        )}
+
+        {agent.statut === 'termine' && !agent.interrompu && (
           <>
             <p className="flex items-center gap-2 text-sm font-semibold text-step-green">
               <CircleCheck className="size-4" aria-hidden="true" />
@@ -102,6 +122,8 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
           className="mt-1"
         />
       </div>
+
+      <DetailDemarche agent={agent} />
 
       </>
       )}

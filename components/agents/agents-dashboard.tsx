@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { ArrowRight } from 'lucide-react'
-import { envoyerReponseAgent, getStatutsAgents, statutsInitiaux, type AgentId } from '@/lib/agents'
+import { useEffect, useState } from 'react'
+import { envoyerReponseAgent, getStatutsAgents, lireAidesChoisies, statutsInitiaux, type AgentId } from '@/lib/agents'
 import { STEP_COLORS } from '@/lib/step-colors'
 import { cn } from '@/lib/utils'
 import { BarreMarcheur } from '@/components/barre-marcheur'
@@ -30,14 +31,23 @@ const AGENT_PAR_AIDE: Record<string, AgentId> = {
 }
 
 export function AgentsDashboard() {
-  // On n'affiche que les agents des aides cochées par l'étudiant (paramètre ?aides=…).
+  // On n'affiche que les agents des aides cochées par l'étudiant : celles de l'adresse (?aides=…),
+  // sinon celles gardées au lancement, sinon les démarches cochées enregistrées par n8n.
   const parametre = useSearchParams().get('aides')
-  const choisis = parametre
-    ? new Set(parametre.split(',').map((id) => AGENT_PAR_AIDE[id]).filter(Boolean))
-    : null
-  const garder = (a: { id: AgentId }) => !choisis || choisis.has(a.id)
+  const [memoire, setMemoire] = useState<string | null>(null)
+  useEffect(() => setMemoire(lireAidesChoisies()), [])
+  const liste = parametre || memoire
+  const choisis = liste ? new Set(liste.split(',').map((id) => AGENT_PAR_AIDE[id]).filter(Boolean)) : null
+  const garder = (a: { id: AgentId; choisie?: boolean }) => (choisis ? choisis.has(a.id) : Boolean(a.choisie))
 
-  const { data: tous = statutsInitiaux(), mutate } = useSWR('statuts-agents', getStatutsAgents, {
+  // Vrai après la première lecture de n8n (évite d'afficher « aucune démarche » avant d'avoir lu).
+  const [charge, setCharge] = useState(false)
+  const lire = async () => {
+    const r = await getStatutsAgents()
+    setCharge(true)
+    return r
+  }
+  const { data: tous = statutsInitiaux(), mutate } = useSWR('statuts-agents', lire, {
     fallbackData: statutsInitiaux(),
     // Toutes les 3 s : l'APL est lue sur n8n, inutile de l'interroger plus souvent.
     refreshInterval: (dernier) => (dernier?.filter(garder).filter((a) => !a.bientot).every((a) => a.statut === 'termine') ? 0 : 3000),
@@ -55,6 +65,29 @@ export function AgentsDashboard() {
   async function envoyer(agentId: AgentId, reponse: string) {
     await envoyerReponseAgent(agentId, reponse)
     await mutate()
+  }
+
+  if (agents.length === 0 && charge) {
+    return (
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
+        <header className="en-tete-page flex flex-col gap-4">
+          <p className={cn('inline-flex w-fit rounded-full bg-primary-soft px-3 py-1 text-sm font-semibold', COULEUR.text)}>
+            Étape 5 sur 6
+          </p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">Aucune démarche lancée</h1>
+          <p className="text-lg leading-relaxed text-muted-foreground">
+            Choisis d&apos;abord les aides que tu veux demander : leurs agents apparaîtront ici.
+          </p>
+          <Link
+            href="/choix"
+            className="inline-flex h-12 w-fit items-center gap-2 rounded-full bg-primary px-6 font-semibold text-primary-foreground hover:bg-primary/90"
+          >
+            Choisir mes démarches
+            <ArrowRight className="size-5" aria-hidden="true" />
+          </Link>
+        </header>
+      </div>
+    )
   }
 
   return (

@@ -11,6 +11,7 @@ import {
   estUnPret,
 } from '@/lib/choix'
 import { enregistrerQuestionnaireCompte, sessionCourante } from '@/lib/compte'
+import { enregistrerAidesChoisies } from '@/lib/agents'
 import { lancerDemarches } from '@/lib/n8n'
 import {
   CONTEXTE_VIDE,
@@ -120,7 +121,7 @@ export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial, cont
   }
 
   const peutLancer = accord && selection.size > 0 && manquants.length === 0
-  const parametres = new URLSearchParams({ aides: [...selection].join(',') })
+  const parametres = new URLSearchParams({ aides: choisies.join(',') })
   if (unPretEstCoche) parametres.set('montant', String(montant))
 
   // Envoie les aides cochées à n8n (workflow 2), qui lance les agents H, puis ouvre la page de suivi.
@@ -133,6 +134,7 @@ export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial, cont
       const questionnaire = { email_demarches: emailDemarches, reponses: reponsesAEnvoyer(choisies, effectives, contexte) }
       await enregistrerQuestionnaireCompte(questionnaire).catch(() => undefined)
       await lancerDemarches(choisies, unPretEstCoche ? montant : undefined, questionnaire)
+      enregistrerAidesChoisies(choisies)
       router.push(`/agents?${parametres.toString()}`)
     } catch (e) {
       setErreur(e instanceof Error ? e.message : "Les agents n'ont pas pu être lancés.")

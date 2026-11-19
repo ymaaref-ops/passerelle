@@ -32,6 +32,14 @@ export interface AgentStatut {
   lienDirect?: string
   /** Agent de demande piloté par l'étudiant depuis sa carte (connexion à son compte). */
   bientot?: boolean
+  /** Démarche cochée par l'étudiant et envoyée à n8n. */
+  choisie?: boolean
+  /** Agent arrêté avant la fin : `resultat` dit où il a bloqué. */
+  interrompu?: boolean
+  /** Pour le détail de la démarche : dernière mise à jour, remarques du simulateur, envoi fait. */
+  majLe?: string
+  remarques?: string
+  envoyee?: boolean
 }
 
 /** Les agents H branchés, avec la démarche n8n qu'ils traitent. */
@@ -137,7 +145,15 @@ function resumeResultat(code: string, d: DemarcheN8n): string {
 
 /** Traduit une démarche renvoyée par n8n en carte d'agent. */
 function agentDepuisN8n(a: (typeof AGENTS)[number], d: DemarcheN8n | undefined, maintenant: number): AgentStatut {
-  const base = { id: a.id, nom: a.nom, site: a.site }
+  const choisie = Boolean(d?.cochee) && d?.statut !== 'proposee'
+  const base = {
+    id: a.id,
+    nom: a.nom,
+    site: a.site,
+    choisie,
+    majLe: d?.updated_at ?? undefined,
+    remarques: d?.resultat_agent?.simulation?.remarques || undefined,
+  }
   if (a.bientot) return { ...base, statut: 'attente', etape: ETAPE_BIENTOT, progression: 0, bientot: true }
   if (!d || !d.cochee || d.statut === 'proposee') {
     return { ...base, statut: 'attente', etape: 'En attente de démarrage…', progression: 0 }
@@ -161,6 +177,7 @@ function agentDepuisN8n(a: (typeof AGENTS)[number], d: DemarcheN8n | undefined, 
         progression: 100,
         resultat: resumeResultat(a.code, d),
         lienDirect,
+        envoyee: d.statut === 'envoyee',
       }
     default:
       return {
@@ -169,8 +186,28 @@ function agentDepuisN8n(a: (typeof AGENTS)[number], d: DemarcheN8n | undefined, 
         etape: 'Interrompu',
         progression: 100,
         resultat: d.resultat_agent?.etape_bloquante || 'Incomplet : on te guide pour finir',
+        interrompu: true,
         lienDirect,
       }
+  }
+}
+
+/** Mémoire des aides cochées à l'étape Choix (pour la page de suivi ouverte depuis le menu). */
+export const CLE_AIDES_CHOISIES = 'passerelle_aides_choisies'
+
+export function enregistrerAidesChoisies(aides: string[]): void {
+  try {
+    window.sessionStorage.setItem(CLE_AIDES_CHOISIES, aides.join(','))
+  } catch {
+    // Stockage indisponible.
+  }
+}
+
+export function lireAidesChoisies(): string | null {
+  try {
+    return window.sessionStorage.getItem(CLE_AIDES_CHOISIES)
+  } catch {
+    return null
   }
 }
 
