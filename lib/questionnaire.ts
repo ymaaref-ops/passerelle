@@ -138,9 +138,10 @@ export const TIROIRS: Tiroir[] = [
       {
         cle: 'crous_ine',
         label: 'Ton numéro INE',
-        aide: '11 caractères, sur ton certificat de scolarité ou ton relevé de notes du bac.',
+        aide:
+          "Facultatif : la simulation de bourse s'en passe. 11 caractères, sur ton certificat de scolarité, ta carte étudiante ou ton relevé de notes du bac. Si tu ne le trouves pas, ton école peut te le donner : il te sera demandé pour la vraie demande (dossier social étudiant).",
         type: 'texte',
-        obligatoire: true,
+        obligatoire: false,
         motif: { re: /^[0-9A-Za-z]{11}$/, message: "L'INE fait 11 caractères (chiffres et lettres)." },
         ocr: (ctx) => texteOcr(ctx, 'ine', 'numero_ine'),
       },
