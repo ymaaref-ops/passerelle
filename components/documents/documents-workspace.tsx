@@ -11,6 +11,7 @@ import { DocumentCard } from '@/components/documents/document-card'
 import type { StatutDocumentUI } from '@/components/documents/statut-pastille'
 import { documentsPour, verifierFichier, type DefinitionDocument, type DocumentRequis } from '@/lib/documents-demo'
 import { deposerDocuments, lireEtatEtudiant, setEtudiantId, type DocumentN8n } from '@/lib/n8n'
+import { pdfVersImage } from '@/lib/pdf-en-image'
 import { lierDossier, lireMonCompte, lirePhotos, photoVersFichier, sessionCourante } from '@/lib/compte'
 import { lireSituation, marquerDocumentsValides, type Situation } from '@/lib/session'
 import { cn } from '@/lib/utils'
@@ -200,8 +201,17 @@ export function DocumentsWorkspace() {
         donnees.append('boursier', situation.bourse === 'oui' ? 'true' : 'false')
       }
       for (const d of DOCUMENTS_REQUIS) {
-        const f = fichiers[d.type]
-        if (f) donnees.append('photo', f, f.name)
+        let f = fichiers[d.type]
+        if (!f) continue
+        // L'IA lit des images : un PDF est transformé en image (ses premières pages) avant l'envoi.
+        if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) {
+          try {
+            f = await pdfVersImage(f)
+          } catch {
+            throw new Error(`Le PDF « ${f.name} » n'a pas pu être lu. Envoie plutôt une photo ou une capture de ce document.`)
+          }
+        }
+        donnees.append('photo', f, f.name)
       }
       const etudiantId = await deposerDocuments(donnees)
       // Le nouveau dossier devient celui du compte : il sera repris à la prochaine visite.
@@ -516,7 +526,7 @@ export function DocumentsWorkspace() {
       <input
         ref={inputFichier}
         type="file"
-        accept="image/*"
+        accept="image/*,application/pdf,.pdf"
         className="sr-only"
         tabIndex={-1}
         aria-hidden="true"
