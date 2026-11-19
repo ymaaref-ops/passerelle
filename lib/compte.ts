@@ -129,8 +129,9 @@ function messageErreur(r: ReponseAuth, statut: number): string {
     return 'Un compte existe déjà avec cet e-mail : connecte-toi.'
   if (code === 'weak_password' || brut.includes('password should'))
     return 'Mot de passe trop court : 6 caractères minimum.'
-  if (code === 'over_email_send_rate_limit' || statut === 429)
-    return "Trop d'essais pour le moment. Réessaie dans quelques minutes."
+  if (code === 'over_email_send_rate_limit')
+    return "Trop de comptes créés en peu de temps : l'envoi des e-mails de confirmation est limité. Réessaie dans une heure."
+  if (statut === 429) return "Trop d'essais pour le moment. Réessaie dans quelques minutes."
   if (brut.includes('invalid') && brut.includes('email')) return "Cette adresse e-mail n'est pas valide."
   return "Ça n'a pas marché. Réessaie dans un instant."
 }
