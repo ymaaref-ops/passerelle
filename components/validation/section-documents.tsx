@@ -17,7 +17,7 @@ function telecharger(document: DocumentPret, profil: ProfilCourant) {
 export function SectionDocuments() {
   const profil = useProfilCourant()
   return (
-    <section aria-labelledby="titre-documents" className="rounded-3xl border border-border bg-card p-5 sm:p-6">
+    <section aria-labelledby="titre-documents" className="rounded-3xl bg-card shadow-carte p-5 sm:p-6">
       <div className="flex items-center gap-4">
         <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <FileText className="size-6" aria-hidden="true" />

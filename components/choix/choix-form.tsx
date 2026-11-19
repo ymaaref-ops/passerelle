@@ -227,7 +227,7 @@ export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial, cont
         </div>
       </aside>
 
-      <div className="flex flex-col gap-5 rounded-3xl border border-border bg-card p-5 sm:p-6">
+      <div className="flex flex-col gap-5 rounded-3xl bg-card shadow-carte p-5 sm:p-6">
         <label
           htmlFor="accord-documents"
           className="flex cursor-pointer items-start gap-4 has-[:focus-visible]:rounded-xl has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-step-green/40"

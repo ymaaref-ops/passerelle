@@ -170,7 +170,7 @@ export function SectionPret({ envois, onEnvoyer }: SectionPretProps) {
   }
 
   return (
-    <details open className="group rounded-3xl border border-border bg-card">
+    <details open className="group rounded-3xl bg-card shadow-carte">
       <summary className="flex cursor-pointer list-none items-center gap-4 rounded-3xl p-5 outline-none focus-visible:ring-4 focus-visible:ring-ring/30 sm:p-6 [&::-webkit-details-marker]:hidden">
         <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <Landmark className="size-6" aria-hidden="true" />
@@ -327,7 +327,7 @@ export function SectionPret({ envois, onEnvoyer }: SectionPretProps) {
                       href={c.image}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="overflow-hidden rounded-2xl border border-border bg-card"
+                      className="overflow-hidden rounded-2xl bg-card shadow-carte"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={c.image} alt={`Capture du site ${c.site}`} className="block h-auto w-full" />

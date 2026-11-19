@@ -108,7 +108,7 @@ export function ProgressSteps() {
   const index = indexEtape(pathname)
   if (index < 0) return null
   return (
-    <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6 lg:px-10">
       <Parcours indexCourant={index} />
     </div>
   )

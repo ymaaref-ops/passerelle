@@ -15,6 +15,7 @@ import { pdfVersImage } from '@/lib/pdf-en-image'
 import { lierDossier, lireMonCompte, lirePhotos, photoVersFichier, sessionCourante } from '@/lib/compte'
 import { lireSituation, marquerDocumentsValides, type Situation } from '@/lib/session'
 import { cn } from '@/lib/utils'
+import { JeuAttente } from '@/components/jeu-attente'
 
 /** Type de document dans l'interface → type renvoyé par la lecture IA (workflow 1). */
 const TYPE_N8N: Record<DocumentRequis, string> = {
@@ -321,7 +322,7 @@ export function DocumentsWorkspace() {
       )}
       <section
         aria-label="Résumé de tes documents"
-        className="flex flex-col gap-5 rounded-3xl border border-step-blue-border bg-step-blue-soft p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
+        className="flex flex-col gap-5 rounded-3xl bg-primary-soft p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
       >
         <div className="min-w-0 flex-1">
           <p aria-live="polite" className="text-xl font-bold text-foreground">
@@ -371,6 +372,15 @@ export function DocumentsWorkspace() {
           )}
         </div>
       </section>
+
+      {phase === 'analyse' && (
+        <div className="mt-6">
+          <JeuAttente
+            titre="Pendant la lecture de tes documents, joue un peu !"
+            note="La lecture continue pendant que tu joues : le résultat s'affiche ici dès qu'elle est finie."
+          />
+        </div>
+      )}
 
       <ul className="mt-6 grid gap-4 md:grid-cols-2">
         {DOCUMENTS_REQUIS.map((definition) => {
@@ -430,7 +440,7 @@ export function DocumentsWorkspace() {
       {phase !== 'resultat' && (
         <section
           aria-labelledby="titre-envoi"
-          className="mt-6 flex flex-col gap-5 rounded-3xl border border-border bg-card p-5 sm:p-6"
+          className="mt-6 flex flex-col gap-5 rounded-3xl bg-card shadow-carte p-5 sm:p-6"
         >
           <h2 id="titre-envoi" className="text-xl font-bold text-foreground">
             Envoyer mes documents

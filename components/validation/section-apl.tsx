@@ -64,7 +64,7 @@ export function SectionApl({ envoyeeLe, onEnvoyer }: SectionAplProps) {
   }
 
   return (
-    <details open className="group rounded-3xl border border-border bg-card">
+    <details open className="group rounded-3xl bg-card shadow-carte">
       <summary className="flex cursor-pointer list-none items-center gap-4 rounded-3xl p-5 outline-none focus-visible:ring-4 focus-visible:ring-ring/30 sm:p-6 [&::-webkit-details-marker]:hidden">
         <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <Home className="size-6" aria-hidden="true" />
@@ -185,7 +185,7 @@ export function SectionApl({ envoyeeLe, onEnvoyer }: SectionAplProps) {
                   : 'Estimation du simulateur officiel. Le montant définitif est fixé par la CAF.'}
             </p>
           </div>
-          <div className="flex flex-col gap-2 rounded-3xl border border-border bg-card p-6">
+          <div className="flex flex-col gap-2 rounded-3xl bg-card shadow-carte p-6">
             <p className="text-sm font-semibold text-foreground">Ce que l&apos;agent a fait sur caf.fr</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
               {remarques ?? "Le compte rendu de l'agent apparaîtra ici une fois la simulation terminée."}

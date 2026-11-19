@@ -45,7 +45,7 @@ export function GardeCompte({ children }: { children: ReactNode }) {
   }, [pathname, publique, router])
 
   if (!autorise) {
-    return <p className="mx-auto max-w-5xl px-4 py-12 text-muted-foreground sm:px-6">Vérification de ton compte…</p>
+    return <p className="mx-auto max-w-6xl px-4 py-12 text-muted-foreground sm:px-6 lg:px-10">Vérification de ton compte…</p>
   }
   return <>{children}</>
 }

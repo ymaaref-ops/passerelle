@@ -49,7 +49,7 @@ export function AidesCatalogue() {
                   return (
                     <li
                       key={aide.id}
-                      className="flex flex-col rounded-3xl border border-border bg-card p-5"
+                      className="flex flex-col rounded-3xl bg-card shadow-carte p-5"
                     >
                       <span
                         className={cn(

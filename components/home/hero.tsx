@@ -49,7 +49,7 @@ export function Hero() {
 
       <aside
         aria-label="Exemple de profil étudiant"
-        className="rounded-3xl border border-border bg-card p-6 shadow-sm"
+        className="rounded-3xl bg-card shadow-carte p-6"
       >
         <p className="text-sm font-medium text-muted-foreground">Profil de démonstration</p>
         <div className="mt-3 flex items-center gap-4">

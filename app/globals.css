@@ -120,6 +120,51 @@
   --sidebar-ring: oklch(0.52 0.2 278);
 }
 
+/* En-tête de page en carte, avec deux bulles lavande à droite (même style que l'accueil). */
+.en-tete-page {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2rem;
+  background: var(--card);
+  padding: 1.75rem;
+  box-shadow:
+    0 1px 2px oklch(0.3 0.12 280 / 0.04),
+    0 10px 30px oklch(0.3 0.12 280 / 0.07);
+}
+@media (min-width: 640px) {
+  .en-tete-page {
+    padding: 2.25rem 2.5rem;
+  }
+}
+.en-tete-page > * {
+  position: relative;
+  z-index: 1;
+  max-width: 42rem;
+}
+.en-tete-page > .pleine-largeur {
+  max-width: none;
+}
+.en-tete-page::before {
+  content: '';
+  position: absolute;
+  top: -9rem;
+  right: -7rem;
+  width: 24rem;
+  height: 24rem;
+  border-radius: 9999px;
+  background: var(--primary-soft);
+}
+.en-tete-page::after {
+  content: '';
+  position: absolute;
+  right: 4rem;
+  bottom: -7rem;
+  width: 13rem;
+  height: 13rem;
+  border-radius: 9999px;
+  background: oklch(0.5 0.21 278 / 0.1);
+}
+
 /* Ombre douce des cartes (style tableau de bord). */
 @utility shadow-carte {
   box-shadow:

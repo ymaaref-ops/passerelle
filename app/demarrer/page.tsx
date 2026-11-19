@@ -31,10 +31,10 @@ const CHOIX = [
 
 export default function DemarrerPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 md:py-16">
-      <header className="mb-8">
-        <p className="text-sm font-semibold text-primary">Ta session</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-10">
+      <header className="en-tete-page mb-8">
+        <p className="inline-flex rounded-full bg-primary-soft px-3 py-1 text-sm font-semibold text-step-blue">Ta session</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">
           Par quoi on commence ?
         </h1>
         <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
@@ -43,7 +43,7 @@ export default function DemarrerPage() {
         </p>
       </header>
 
-      <ul className="grid gap-4 sm:grid-cols-2">
+      <ul className="grid max-w-4xl gap-4 sm:grid-cols-2">
         {CHOIX.map(({ href, titre, texte, Icone, couleur, pastille }) => (
           <li key={href}>
             <Link

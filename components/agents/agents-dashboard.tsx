@@ -9,6 +9,8 @@ import { ArrowRight } from 'lucide-react'
 import { envoyerReponseAgent, getStatutsAgents, statutsInitiaux, type AgentId } from '@/lib/agents'
 import { STEP_COLORS } from '@/lib/step-colors'
 import { cn } from '@/lib/utils'
+import { BarreMarcheur } from '@/components/barre-marcheur'
+import { JeuAttente } from '@/components/jeu-attente'
 import { AgentCard } from './agent-card'
 import { NotificationAgents } from './notification-agents'
 
@@ -56,14 +58,14 @@ export function AgentsDashboard() {
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 md:py-12">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
       <BoutonPrecedent href="/choix" label="Précédent : ton choix" />
       <NotificationAgents agents={agents} />
 
-      <header className={cn('flex flex-col gap-6 rounded-3xl border p-6 sm:p-8', COULEUR.card)}>
+      <header className="en-tete-page flex flex-col gap-6">
         <div className="max-w-2xl">
-          <p className={cn('text-sm font-semibold', COULEUR.text)}>Étape 5 sur 6</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+          <p className={cn('inline-flex rounded-full bg-primary-soft px-3 py-1 text-sm font-semibold', COULEUR.text)}>Étape 5 sur 6</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">
             {seulementBientot
               ? 'Tes demandes seront bientôt préparées'
               : toutTermine
@@ -83,28 +85,22 @@ export function AgentsDashboard() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="pleine-largeur flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-3">
             <p className="text-xl font-bold text-foreground">
               <span className={COULEUR.text}>{termines}</span> sur {total} terminés
             </p>
             <p className="text-sm text-muted-foreground tabular-nums">{progressionGlobale} %</p>
           </div>
-          <div
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={progressionGlobale}
-            aria-label={`Progression globale : ${termines} sur ${total} agents terminés`}
-            className="h-3 overflow-hidden rounded-full bg-foreground/10"
-          >
-            <div
-              className={cn('h-full rounded-full transition-[width] duration-1000 ease-linear', COULEUR.solid)}
-              style={{ width: `${progressionGlobale}%` }}
-            />
-          </div>
+          <BarreMarcheur
+            valeur={progressionGlobale}
+            label={`Progression globale : ${termines} sur ${total} agents terminés`}
+            couleur={COULEUR.solid}
+          />
         </div>
       </header>
+
+      {!toutTermine && !seulementBientot && total > 0 && <JeuAttente />}
 
       <section aria-label="Détail des agents" className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
         {agents.map((agent) => (

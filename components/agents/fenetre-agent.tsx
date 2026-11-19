@@ -242,7 +242,7 @@ export function FenetreAgent() {
         </p>
       )}
 
-      <figure className="overflow-hidden rounded-2xl border border-border bg-card">
+      <figure className="overflow-hidden rounded-2xl bg-card shadow-carte">
         {vue?.observation?.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

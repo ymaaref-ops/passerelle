@@ -153,7 +153,7 @@ export function FormulaireConnexion() {
         ))}
       </div>
 
-      <form onSubmit={valider} className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-5 sm:p-6">
+      <form onSubmit={valider} className="flex flex-col gap-4 rounded-3xl bg-card shadow-carte p-5 sm:p-6">
         {mode === 'creation' && (
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-foreground">Prénom</span>

@@ -81,7 +81,7 @@ function Question<T extends string>({
   onChange: (v: T) => void
 }) {
   return (
-    <fieldset className="flex flex-col gap-3 rounded-3xl border border-border bg-card p-5 sm:p-6">
+    <fieldset className="flex flex-col gap-3 rounded-3xl bg-card shadow-carte p-5 sm:p-6">
       <legend className="sr-only">{titre}</legend>
       <div>
         <p className="text-lg font-bold text-foreground" aria-hidden="true">
@@ -211,7 +211,7 @@ export function SituationForm() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-5 sm:p-6">
+      <div className="flex flex-col gap-4 rounded-3xl bg-card shadow-carte p-5 sm:p-6">
         <label className="flex flex-col gap-1.5">
           <span className="text-lg font-bold text-foreground">Ton e-mail pour les démarches</span>
           <span className="text-sm text-muted-foreground">
@@ -276,7 +276,7 @@ export function SituationForm() {
         onChange={setFamille}
       />
       {famille !== '' && (
-        <label className="flex flex-col gap-1.5 rounded-3xl border border-border bg-card p-5 sm:p-6">
+        <label className="flex flex-col gap-1.5 rounded-3xl bg-card shadow-carte p-5 sm:p-6">
           <span className="text-lg font-bold text-foreground">Nombre d&apos;enfants à ta charge</span>
           <input
             type="number"
@@ -291,7 +291,7 @@ export function SituationForm() {
       <Question nom="activite" titre="Ton activité" options={ACTIVITE} valeur={activite} onChange={setActivite} />
 
       {revenusDemandes && (
-        <label className="flex flex-col gap-1.5 rounded-3xl border border-border bg-card p-5 sm:p-6">
+        <label className="flex flex-col gap-1.5 rounded-3xl bg-card shadow-carte p-5 sm:p-6">
           <span className="text-lg font-bold text-foreground">Ton salaire net par mois (en €)</span>
           <span className="text-sm text-muted-foreground">
             Le montant « net à payer » de ta fiche de paie, en moyenne. Si ton salaire varie, mets une moyenne des

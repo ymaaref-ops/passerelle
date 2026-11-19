@@ -36,7 +36,7 @@ function CarteLogement({ l }: { l: Logement }) {
   const etiquette = ETIQUETTES[l.eligibilite ?? ''] ?? null
   const alertes = liste(l.alertes)
   return (
-    <li className="flex flex-col gap-3 rounded-3xl border border-border bg-card p-5 sm:p-6">
+    <li className="flex flex-col gap-3 rounded-3xl bg-card shadow-carte p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <h3 className="text-lg font-bold text-foreground">
           {l.rang ? `${l.rang}. ` : ''}
@@ -241,7 +241,7 @@ export function RechercheLogement() {
       {sessionId && (
         <section aria-live="polite" className="flex flex-col gap-4">
           {enCours && !enAttenteDeToi && (
-            <p className="flex items-center gap-2 rounded-3xl border border-border bg-card p-5 text-foreground">
+            <p className="flex items-center gap-2 rounded-3xl bg-card shadow-carte p-5 text-foreground">
               <Loader2 className="size-5 shrink-0 text-step-violet motion-safe:animate-spin" aria-hidden="true" />
               L&apos;agent cherche des logements et simule ton aide pour chacun… Ça prend quelques minutes.
             </p>
@@ -306,7 +306,7 @@ export function RechercheLogement() {
           )}
 
           {termine && !etat?.logements?.length && (
-            <p className="rounded-3xl border border-border bg-card p-5 text-foreground">
+            <p className="rounded-3xl bg-card shadow-carte p-5 text-foreground">
               {texte || "L'agent n'a pas trouvé de logement cette fois. Essaie avec un budget ou un quartier différent."}
             </p>
           )}

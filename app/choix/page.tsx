@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 export default function ChoixPage() {
   return (
     <GardeDocuments>
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:py-12">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-10">
       <BoutonPrecedent href="/aides" label="Précédent : tes aides" className="mb-6" />
-      <header className="mb-8 max-w-2xl">
-        <p className={cn('text-sm font-semibold', STEP_COLORS.green.text)}>Étape 4 sur 6</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+      <header className="en-tete-page mb-8">
+        <p className={cn('inline-flex rounded-full bg-primary-soft px-3 py-1 text-sm font-semibold', STEP_COLORS.green.text)}>Étape 4 sur 6</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">
           Choisis tes démarches
         </h1>
         <p className="mt-3 text-lg leading-relaxed text-muted-foreground">

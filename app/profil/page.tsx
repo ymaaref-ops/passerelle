@@ -8,8 +8,10 @@ export const metadata: Metadata = {
 
 export default function ProfilPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
-      <ProfilEtudiant />
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-10">
+      <div className="max-w-3xl">
+        <ProfilEtudiant />
+      </div>
     </div>
   )
 }

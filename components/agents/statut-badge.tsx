@@ -10,13 +10,13 @@ export const STYLES_STATUT: Record<
     label: 'En attente',
     badge: 'border-border bg-muted text-muted-foreground',
     barre: 'bg-muted-foreground/40',
-    carte: 'border-border bg-card',
+    carte: 'border-transparent bg-card shadow-carte',
   },
   en_cours: {
     label: 'En cours',
     badge: 'border-step-blue-border bg-step-blue-soft text-step-blue',
     barre: 'bg-step-blue',
-    carte: 'border-step-blue-border bg-card',
+    carte: 'border-step-blue-border bg-card shadow-carte',
   },
   besoin: {
     label: 'Besoin de toi',

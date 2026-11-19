@@ -16,7 +16,7 @@ export function GardeDocuments({ children }: { children: ReactNode }) {
 
   if (!autorise) {
     return (
-      <p className="mx-auto max-w-5xl px-4 py-12 text-muted-foreground sm:px-6">
+      <p className="mx-auto max-w-6xl px-4 py-12 text-muted-foreground sm:px-6 lg:px-10">
         Vérification de tes documents…
       </p>
     )

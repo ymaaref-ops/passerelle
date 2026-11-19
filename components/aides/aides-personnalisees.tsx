@@ -51,9 +51,9 @@ export function AidesPersonnalisees() {
 
   return (
     <>
-      <header className="mb-8 max-w-2xl">
-        <p className={cn('text-sm font-semibold', STEP_COLORS.violet.text)}>Étape 3 sur 6</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-primary sm:text-4xl">Tes aides</h1>
+      <header className="en-tete-page mb-8">
+        <p className={cn('inline-flex rounded-full bg-primary-soft px-3 py-1 text-sm font-semibold', STEP_COLORS.violet.text)}>Étape 3 sur 6</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">Tes aides</h1>
         <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
           {prenom ? `Pour ${prenom}` : 'Pour toi'}
           {details.length ? `, ${details.join(', ')}` : ''}. Voici ce qu&apos;on a trouvé à partir de tes documents,

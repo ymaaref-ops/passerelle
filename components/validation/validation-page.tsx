@@ -77,12 +77,12 @@ export function ValidationPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 md:py-12">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
       <BoutonPrecedent href="/agents" label="Précédent : tes agents" />
-      <header className={cn('flex flex-col gap-6 rounded-3xl border p-6 sm:p-8', COULEUR.card)}>
+      <header className="en-tete-page flex flex-col gap-6">
         <div className="max-w-2xl">
-          <p className={cn('text-sm font-semibold', COULEUR.text)}>Étape 6 sur 6</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+          <p className={cn('inline-flex rounded-full bg-primary-soft px-3 py-1 text-sm font-semibold', COULEUR.text)}>Étape 6 sur 6</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">
             Relis avant d&apos;envoyer
           </h1>
           <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
@@ -125,7 +125,7 @@ export function ValidationPage() {
 
       {demandees === null && <p className="text-muted-foreground">Chargement de tes démarches…</p>}
       {demandees && !demandees.apl && !demandees.prets && !demandees.bourse && (
-        <p className="rounded-3xl border border-border bg-card p-6 text-foreground">
+        <p className="rounded-3xl bg-card shadow-carte p-6 text-foreground">
           Aucune démarche à relire : coche une aide sur la page Choix pour que nos agents s&apos;en occupent.
         </p>
       )}

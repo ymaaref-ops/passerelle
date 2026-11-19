@@ -65,7 +65,7 @@ export function ConfirmationEnvoi({ recap, statutMail, onReessayer }: Confirmati
         <span className="flex size-16 animate-check-pop items-center justify-center rounded-full bg-step-green text-white">
           <Check className="size-9" strokeWidth={3} aria-hidden="true" />
         </span>
-        <h2 id="titre-confirmation" className="text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+        <h2 id="titre-confirmation" className="text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">
           C&apos;est envoyé !
         </h2>
         <div role="status" aria-live="polite">
@@ -75,7 +75,7 @@ export function ConfirmationEnvoi({ recap, statutMail, onReessayer }: Confirmati
 
       <article
         aria-label="Aperçu du mail récapitulatif"
-        className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card"
+        className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl bg-card shadow-carte"
       >
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 border-b border-border bg-muted px-5 py-4 text-sm">
           <dt className="text-muted-foreground">De</dt>

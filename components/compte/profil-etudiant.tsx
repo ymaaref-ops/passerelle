@@ -202,7 +202,7 @@ export function ProfilEtudiant() {
         </button>
       </header>
 
-      <section aria-labelledby="titre-infos" className="rounded-3xl border border-border bg-card p-5 sm:p-6">
+      <section aria-labelledby="titre-infos" className="rounded-3xl bg-card shadow-carte p-5 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 id="titre-infos" className="text-xl font-bold text-foreground">
@@ -306,7 +306,7 @@ export function ProfilEtudiant() {
         )}
       </section>
 
-      <section aria-labelledby="titre-docs" className="rounded-3xl border border-border bg-card p-5 sm:p-6">
+      <section aria-labelledby="titre-docs" className="rounded-3xl bg-card shadow-carte p-5 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 id="titre-docs" className="text-xl font-bold text-foreground">

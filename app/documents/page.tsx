@@ -12,11 +12,11 @@ export const metadata: Metadata = {
 
 export default function DocumentsPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:py-12">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-10">
       <BoutonPrecedent href="/situation" label="Précédent : ta situation" className="mb-6" />
-      <header className="mb-8 max-w-2xl">
-        <p className={cn('text-sm font-semibold', STEP_COLORS.blue.text)}>Étape 2 sur 6</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+      <header className="en-tete-page mb-8">
+        <p className={cn('inline-flex rounded-full bg-primary-soft px-3 py-1 text-sm font-semibold', STEP_COLORS.blue.text)}>Étape 2 sur 6</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">
           Mes documents
         </h1>
         <p className="mt-3 text-lg leading-relaxed text-muted-foreground">

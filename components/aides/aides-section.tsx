@@ -89,7 +89,7 @@ export function AidesNonConcernees({ aides }: { aides: AideEvaluee[] }) {
   const headingId = 'section-non-concerne'
   return (
     <section aria-labelledby={headingId}>
-      <details className="group rounded-3xl border border-border bg-card">
+      <details className="group rounded-3xl bg-card shadow-carte">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-3xl p-5 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:p-6 [&::-webkit-details-marker]:hidden">
           <SectionHeading id={headingId} statut="non_concerne" nombre={aides.length} />
           <span className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-muted-foreground">

@@ -160,7 +160,7 @@ export function QuestionsAide({
 }) {
   const champs = tiroir.champs.filter((c) => champVisible(c, reponses, contexte))
   return (
-    <details open className="group rounded-3xl border border-border bg-card p-5 sm:p-6">
+    <details open className="group rounded-3xl bg-card shadow-carte p-5 sm:p-6">
       <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl outline-none focus-visible:ring-4 focus-visible:ring-ring/30">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-step-blue text-white">
           <ClipboardList className="size-5" aria-hidden="true" />
