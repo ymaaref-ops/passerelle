@@ -146,7 +146,8 @@ export function SituationForm() {
       if (typeof r.type_logement !== 'string' && s.logement !== 'locataire') setTypeLogement(s.logement)
       setActivite(s.activite)
       setBourse(s.bourse)
-      setRessources(String(s.ressources))
+      // Le formulaire demande le salaire mensuel ; la situation garde le total sur 12 mois.
+      setRessources(s.ressources > 0 ? String(Math.round(s.ressources / 12)) : '')
     }
     lireMonCompte()
       .then((c) => {
@@ -181,7 +182,7 @@ export function SituationForm() {
       logement: VERS_SITUATION[typeLogement as TypeLogement],
       activite: activite as Activite,
       bourse: bourse as Bourse,
-      ressources: revenusDemandes ? Number(ressources) : 0,
+      ressources: revenusDemandes ? Math.round(Number(ressources) * 12) : 0,
     }
     enregistrerSituation(situation)
     // Gardée dans le compte : pré-remplie à la prochaine visite.
@@ -291,11 +292,10 @@ export function SituationForm() {
 
       {revenusDemandes && (
         <label className="flex flex-col gap-1.5 rounded-3xl border border-border bg-card p-5 sm:p-6">
-          <span className="text-lg font-bold text-foreground">Tes revenus des 12 derniers mois (en €)</span>
+          <span className="text-lg font-bold text-foreground">Ton salaire net par mois (en €)</span>
           <span className="text-sm text-muted-foreground">
-            Le <strong>total sur l&apos;année</strong> de tes salaires nets, pas le montant d&apos;un mois. Par exemple,
-            1 100 € par mois pendant 12 mois = 13 200 €. La CAF s&apos;en sert pour l&apos;APL et la prime
-            d&apos;activité : le montant change beaucoup le résultat.
+            Le montant « net à payer » de ta fiche de paie, en moyenne. Si ton salaire varie, mets une moyenne des
+            derniers mois. La CAF s&apos;en sert pour l&apos;APL et la prime d&apos;activité.
           </span>
           <input
             type="number"
@@ -307,7 +307,7 @@ export function SituationForm() {
           />
           {Number(ressources) > 0 && (
             <span className="text-sm text-muted-foreground">
-              Soit environ {Math.round(Number(ressources) / 12).toLocaleString('fr-FR')} € par mois.
+              Soit environ {Math.round(Number(ressources) * 12).toLocaleString('fr-FR')} € sur 12 mois.
             </span>
           )}
         </label>
