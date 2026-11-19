@@ -10,6 +10,7 @@ import {
   type EnvoisParDemarche,
 } from '@/lib/validation'
 import { NOMS_PIECES_JOINTES } from '@/lib/validation-documents'
+import { lireEtat } from '@/lib/n8n'
 import { STEP_COLORS } from '@/lib/step-colors'
 import { cn } from '@/lib/utils'
 import { ConfirmationEnvoi, type StatutMail } from './confirmation-envoi'
@@ -18,9 +19,26 @@ import { SectionDocuments } from './section-documents'
 import { SectionPret } from './section-pret'
 
 const COULEUR = STEP_COLORS.orange
-const TOTAL_DEMARCHES = Object.keys(DEMARCHES).length
+const NB_BANQUES = Object.keys(DEMARCHES).length - 1
+
+/** Démarches réellement demandées par l'étudiant (cochées et lancées), lues dans n8n. */
+function useDemandees(): { apl: boolean; prets: boolean } | null {
+  const [demandees, setDemandees] = useState<{ apl: boolean; prets: boolean } | null>(null)
+  useEffect(() => {
+    lireEtat()
+      .then((etat) => {
+        const cochee = (code: string) =>
+          (etat.demarches ?? []).some((d) => d.aide_code === code && d.cochee && d.statut !== 'proposee')
+        setDemandees({ apl: cochee('apl'), prets: cochee('pret_garanti') })
+      })
+      .catch(() => setDemandees({ apl: true, prets: false }))
+  }, [])
+  return demandees
+}
 
 export function ValidationPage() {
+  const demandees = useDemandees()
+  const TOTAL_DEMARCHES = demandees ? (demandees.apl ? 1 : 0) + (demandees.prets ? NB_BANQUES : 0) : 0
   const [envois, setEnvois] = useState<EnvoisParDemarche>({})
   const [statutMail, setStatutMail] = useState<StatutMail>('envoi')
   const dernierMail = useRef(0)
@@ -100,9 +118,15 @@ export function ValidationPage() {
         )}
       </div>
 
-      <SectionApl envoyeeLe={envois.apl} onEnvoyer={marquerEnvoyee} />
-      <SectionPret envois={envois} onEnvoyer={marquerEnvoyee} />
-      <SectionDocuments />
+      {demandees === null && <p className="text-muted-foreground">Chargement de tes démarches…</p>}
+      {demandees && !demandees.apl && !demandees.prets && (
+        <p className="rounded-3xl border border-border bg-card p-6 text-foreground">
+          Aucune démarche à relire : coche une aide sur la page Choix pour que nos agents s&apos;en occupent.
+        </p>
+      )}
+      {demandees?.apl && <SectionApl envoyeeLe={envois.apl} onEnvoyer={marquerEnvoyee} />}
+      {demandees?.prets && <SectionPret envois={envois} onEnvoyer={marquerEnvoyee} />}
+      {demandees?.prets && <SectionDocuments />}
     </div>
   )
 }

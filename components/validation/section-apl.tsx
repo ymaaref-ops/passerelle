@@ -9,7 +9,6 @@ import {
 } from '@/lib/validation'
 import { lireEtat } from '@/lib/n8n'
 import { BoutonEnvoi } from './bouton-envoi'
-import { CaptureSimulateur } from './capture-simulateur'
 
 interface SectionAplProps {
   envoyeeLe?: string
@@ -18,23 +17,27 @@ interface SectionAplProps {
 
 const demarche = DEMARCHES.apl
 
-/** Montant de l'APL trouvé par l'agent simulateur (n8n), au lieu d'un chiffre de démo. */
-function useAplN8n(): number | null | undefined {
+/** Montant de l'APL et compte rendu de l'agent simulateur (n8n), au lieu de chiffres de démo. */
+function useAplN8n(): { montant: number | null | undefined; remarques: string | null } {
   const [montant, setMontant] = useState<number | null | undefined>(undefined)
+  const [remarques, setRemarques] = useState<string | null>(null)
   useEffect(() => {
     lireEtat()
       .then((etat) => {
         const apl = etat.demarches?.find((d) => d.aide_code === 'apl')
         const v = apl?.montant_estime
         setMontant(v === null || v === undefined || v === '' ? null : Math.round(Number(v)))
+        const r = apl?.resultat_agent
+        const texte = (r?.reponse as { remarques?: unknown } | null | undefined)?.remarques ?? r?.simulation?.remarques
+        setRemarques(typeof texte === 'string' && texte.trim() ? texte : null)
       })
       .catch(() => setMontant(null))
   }, [])
-  return montant
+  return { montant, remarques }
 }
 
 export function SectionApl({ envoyeeLe, onEnvoyer }: SectionAplProps) {
-  const montantApl = useAplN8n()
+  const { montant: montantApl, remarques } = useAplN8n()
   const texteMontant = montantApl === undefined ? '…' : montantApl === null ? '—' : `${montantApl} €/mois`
   const [infos, setInfos] = useState(INFOS_APL_INITIALES)
   const [enEdition, setEnEdition] = useState<string | null>(null)
@@ -174,7 +177,12 @@ export function SectionApl({ envoyeeLe, onEnvoyer }: SectionAplProps) {
                   : 'Estimation du simulateur officiel. Le montant définitif est fixé par la CAF.'}
             </p>
           </div>
-          <CaptureSimulateur site={demarche.site} nom="APL" />
+          <div className="flex flex-col gap-2 rounded-3xl border border-border bg-card p-6">
+            <p className="text-sm font-semibold text-foreground">Ce que l&apos;agent a fait sur caf.fr</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {remarques ?? "Le compte rendu de l'agent apparaîtra ici une fois la simulation terminée."}
+            </p>
+          </div>
         </div>
 
         <BoutonEnvoi demarche={demarche} envoyeeLe={envoyeeLe} onEnvoyer={onEnvoyer} />
