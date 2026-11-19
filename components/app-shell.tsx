@@ -17,7 +17,8 @@ import {
 } from 'lucide-react'
 import { MenuCompte, useSession } from '@/components/compte/menu-compte'
 import { SiteHeader } from '@/components/site-header'
-import { EMAIL_SUPPORT, lienSupport } from '@/lib/support'
+import { EMAIL_SUPPORT } from '@/lib/support'
+import { ContactSupport } from '@/components/contact-support'
 import { cn } from '@/lib/utils'
 
 const MENU: { href: string; label: string; Icone: LucideIcon; actif?: string[] }[] = [
@@ -78,12 +79,9 @@ function BarreLaterale({ pathname }: { pathname: string }) {
         <Headset className="size-6 text-step-blue" aria-hidden="true" />
         <p className="font-bold text-foreground">Une question ?</p>
         <p className="text-sm leading-snug text-muted-foreground">Notre équipe est là pour t&apos;aider.</p>
-        <a
-          href={lienSupport()}
-          className="mt-1 inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring/30"
-        >
+        <ContactSupport className="mt-1 inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring/30">
           Contacter
-        </a>
+        </ContactSupport>
         <p className="text-xs break-all text-muted-foreground">{EMAIL_SUPPORT}</p>
       </div>
     </aside>
@@ -150,13 +148,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Logo />
             </div>
             <div className="ml-auto flex items-center gap-2 sm:gap-4">
-              <a
-                href={lienSupport()}
-                aria-label={`Contacter le support : ${EMAIL_SUPPORT}`}
+              <ContactSupport
+                ariaLabel={`Contacter le support : ${EMAIL_SUPPORT}`}
                 className="flex size-11 items-center justify-center rounded-full text-foreground outline-none hover:bg-card/70 focus-visible:ring-4 focus-visible:ring-ring/30 lg:hidden"
               >
                 <Headset className="size-5" aria-hidden="true" />
-              </a>
+              </ContactSupport>
               <Link
                 href="/agents"
                 aria-label="Suivi de tes démarches"

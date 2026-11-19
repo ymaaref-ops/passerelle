@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { ShieldCheck } from 'lucide-react'
 import { MenuCompte } from '@/components/compte/menu-compte'
-import { EMAIL_SUPPORT, lienSupport } from '@/lib/support'
+import { EMAIL_SUPPORT } from '@/lib/support'
+import { ContactSupport } from '@/components/contact-support'
 
 export function SiteHeader() {
   return (
@@ -24,13 +25,9 @@ export function SiteHeader() {
             <ShieldCheck className="size-4 text-success" aria-hidden="true" />
             Tu valides toujours avant l&apos;envoi
           </p>
-          <a
-            href={lienSupport()}
-            title={EMAIL_SUPPORT}
-            className="hidden text-sm font-semibold text-primary hover:underline sm:block"
-          >
+          <ContactSupport title={EMAIL_SUPPORT} className="hidden text-sm font-semibold text-primary hover:underline sm:block">
             Contact
-          </a>
+          </ContactSupport>
           <MenuCompte />
         </div>
       </div>
