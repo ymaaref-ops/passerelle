@@ -15,7 +15,7 @@ export function ouvrirFenetre(lien: string) {
 }
 
 /** Adresse de la page /fenetre-agent pour une session H (le lien de partage H renvoie du JSON, pas une page). */
-export function adresseFenetre(sessionId: string, lienPartage: string, source: 'demande' | 'logement' = 'demande') {
+export function adresseFenetre(sessionId: string, lienPartage: string, source: 'demande' | 'logement' | 'caf' = 'demande') {
   const params = new URLSearchParams({ session: sessionId, lien: lienPartage })
   if (source !== 'demande') params.set('source', source)
   return `/fenetre-agent?${params.toString()}`

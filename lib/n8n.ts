@@ -52,6 +52,17 @@ export const CODES_N8N: Record<string, string> = {
 
 const BANQUES = ['pret-lbp', 'pret-sg', 'pret-cic']
 
+/** Préparation de la vraie demande APL par l'agent demande-apl-caf (workflow n8n 6). */
+export interface DemandeCaf {
+  session_id?: string
+  lien_public?: string | null
+  statut?: 'en_cours' | 'pret_a_valider' | 'en_attente_utilisateur' | 'bloque' | string
+  etape_atteinte?: string | null
+  recapitulatif?: string | null
+  questions_sans_reponse?: string[]
+  remarques?: string | null
+}
+
 export interface DemarcheN8n {
   id: string
   aide_code: string
@@ -67,6 +78,7 @@ export interface DemarcheN8n {
     etape_bloquante?: string | null
     simulation?: { montant_mensuel?: number | null; remarques?: string } | null
     reponse?: { resultats?: unknown[]; [cle: string]: unknown } | null
+    demande?: DemandeCaf | null
   } | null
 }
 

@@ -6,6 +6,7 @@ import { DEMARCHES, infosApl, type InfoApl, type DemarcheId } from '@/lib/valida
 import { useProfilCourant } from '@/lib/profil-courant'
 import { lireEtat } from '@/lib/n8n'
 import { BoutonEnvoi } from './bouton-envoi'
+import { DemandeAplCaf } from './demande-apl-caf'
 
 interface SectionAplProps {
   envoyeeLe?: string
@@ -192,6 +193,8 @@ export function SectionApl({ envoyeeLe, onEnvoyer }: SectionAplProps) {
             </p>
           </div>
         </div>
+
+        <DemandeAplCaf email={profil?.email ?? null} simulationFaite={typeof montantApl === 'number'} />
 
         <BoutonEnvoi demarche={demarche} envoyeeLe={envoyeeLe} onEnvoyer={onEnvoyer} />
       </div>

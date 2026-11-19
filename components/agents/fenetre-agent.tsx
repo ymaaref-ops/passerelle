@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation'
 import { ExternalLink, Loader2, Send } from 'lucide-react'
 import { repondreDemande } from '@/lib/demandes'
 import { repondreAgent } from '@/lib/logement'
+import { repondreDemandeCaf } from '@/lib/demande-caf'
+import { getEtudiantId } from '@/lib/n8n'
 
 /** Seuls les liens de partage H sont lus (page publique en lecture seule). */
 const PREFIXE_PARTAGE = 'https://agp.eu.hcompany.ai/share/'
@@ -73,7 +75,8 @@ export function FenetreAgent() {
   const lienBrut = params.get('lien') ?? ''
   const lien = lienBrut.startsWith(PREFIXE_PARTAGE) ? lienBrut : null
   // Quel agent répond : logement (passerelle-logement) ou demande (Visale, Mobili-Jeune).
-  const source = params.get('source') === 'logement' ? 'logement' : 'demande'
+  const brut = params.get('source')
+  const source = brut === 'logement' ? 'logement' : brut === 'caf' ? 'caf' : 'demande'
 
   const [vue, setVue] = useState<Vue | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
@@ -109,7 +112,8 @@ export function FenetreAgent() {
     setEnvoi(true)
     setErreur(null)
     try {
-      await (source === 'logement' ? repondreAgent : repondreDemande)(session, texte.trim())
+      if (source === 'caf') await repondreDemandeCaf(getEtudiantId(), session, texte.trim())
+      else await (source === 'logement' ? repondreAgent : repondreDemande)(session, texte.trim())
       setReponse('')
       setEnvoye(true)
       setVue((v) => (v ? { ...v, statut: 'running' } : v))
@@ -187,7 +191,7 @@ export function FenetreAgent() {
           )}
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-foreground">
-              {source === 'logement' ? "Ta réponse à l'agent" : 'Ta réponse (ton e-mail, le code reçu…)'}
+              {source === 'logement' ? "Ta réponse à l'agent" : source === 'caf' ? 'Ta réponse (le code reçu par e-mail de la CAF, une info manquante…)' : 'Ta réponse (ton e-mail, le code reçu…)'}
             </span>
             <div className="flex gap-2">
               <input
@@ -209,7 +213,7 @@ export function FenetreAgent() {
               </button>
             </div>
           </label>
-          {source === 'demande' && vue?.observation?.url && (
+          {source !== 'logement' && vue?.observation?.url && (
             <p className="text-sm text-muted-foreground">
               Ton mot de passe reste à toi. Tu peux aussi faire cette étape toi-même :{' '}
               <a
