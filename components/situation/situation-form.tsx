@@ -133,7 +133,9 @@ export function SituationForm() {
         <label className="flex flex-col gap-1.5 rounded-3xl border border-border bg-card p-5 sm:p-6">
           <span className="text-lg font-bold text-foreground">Tes revenus des 12 derniers mois (en €)</span>
           <span className="text-sm text-muted-foreground">
-            Le total de tes salaires nets. La CAF le demande pour l&apos;APL et la prime d&apos;activité.
+            Le <strong>total sur l&apos;année</strong> de tes salaires nets, pas le montant d&apos;un mois. Par exemple,
+            1 100 € par mois pendant 12 mois = 13 200 €. La CAF s&apos;en sert pour l&apos;APL et la prime
+            d&apos;activité : le montant change beaucoup le résultat.
           </span>
           <input
             type="number"
@@ -143,6 +145,11 @@ export function SituationForm() {
             onChange={(e) => setRessources(e.target.value)}
             className="mt-2 h-12 max-w-xs rounded-xl border border-border bg-background px-4 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/30"
           />
+          {Number(ressources) > 0 && (
+            <span className="text-sm text-muted-foreground">
+              Soit environ {Math.round(Number(ressources) / 12).toLocaleString('fr-FR')} € par mois.
+            </span>
+          )}
         </label>
       )}
 
