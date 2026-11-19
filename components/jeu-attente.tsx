@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Gamepad2, RotateCcw, Trophy } from 'lucide-react'
 import { BoutonSon } from '@/components/bouton-son'
 import { changerMuet, estMuet, jouerSon } from '@/lib/sons'
+import { sessionCourante } from '@/lib/compte'
 
 /**
  * Petit jeu pendant l'attente des agents, façon « dinosaure de Chrome » :
@@ -18,6 +19,11 @@ const X_PERSO = 70
 const GRAVITE = 0.62
 const SAUT = -11.6
 const CLE_RECORD = 'passerelle_jeu_record'
+/** Un record par compte : un nouveau profil commence à zéro. */
+function cleRecord(): string {
+  const email = sessionCourante()?.email?.toLowerCase()
+  return email ? `${CLE_RECORD}:${email}` : CLE_RECORD
+}
 
 const C = {
   nuit: '#1e1b6b',
@@ -386,7 +392,7 @@ export function JeuAttente({
 
   useEffect(() => {
     try {
-      setRecord(Number(window.localStorage.getItem(CLE_RECORD)) || 0)
+      setRecord(Number(window.localStorage.getItem(cleRecord())) || 0)
       muetRef.current = estMuet()
       setMuet(muetRef.current)
     } catch {
@@ -501,7 +507,7 @@ export function JeuAttente({
             setRecord((r) => {
               const nouveau = Math.max(r, final)
               try {
-                window.localStorage.setItem(CLE_RECORD, String(nouveau))
+                window.localStorage.setItem(cleRecord(), String(nouveau))
               } catch {
                 // Stockage indisponible.
               }
