@@ -54,7 +54,7 @@ export type ZoneNationalite = 'fr_ue' | 'hors_ue_boursier' | 'hors_ue_non_boursi
 export type SituationFamiliale = 'celibataire' | 'couple'
 
 export const LOGEMENTS: Option[] = [
-  { valeur: 'prive', label: 'Locataire dans le privé' },
+  { valeur: 'prive', label: 'Locataire' },
   { valeur: 'crous', label: 'En résidence Crous' },
   { valeur: 'parents', label: 'Chez mes parents' },
   { valeur: 'cherche', label: 'Je cherche un logement' },
