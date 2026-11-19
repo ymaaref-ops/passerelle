@@ -51,11 +51,11 @@ function Logo() {
 
 function BarreLaterale({ pathname }: { pathname: string }) {
   return (
-    <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-8 rounded-r-[2rem] bg-card px-4 py-7 shadow-carte lg:flex">
+    <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-6 overflow-y-auto rounded-r-[2rem] bg-card px-4 py-6 shadow-carte lg:flex">
       <div className="px-2">
         <Logo />
       </div>
-      <nav aria-label="Menu principal" className="flex flex-col gap-1.5">
+      <nav aria-label="Menu principal" className="flex flex-col gap-1">
         {MENU.map((item) => {
           const actif = estActif(pathname, item)
           return (
@@ -64,7 +64,7 @@ function BarreLaterale({ pathname }: { pathname: string }) {
               href={item.href}
               aria-current={actif ? 'page' : undefined}
               className={cn(
-                'flex h-12 items-center gap-3 rounded-2xl px-4 text-[0.95rem] font-semibold outline-none transition-colors focus-visible:ring-4 focus-visible:ring-ring/30',
+                'flex h-11 shrink-0 items-center gap-3 rounded-2xl px-4 text-[0.95rem] font-semibold outline-none transition-colors focus-visible:ring-4 focus-visible:ring-ring/30',
                 actif ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20' : 'text-foreground hover:bg-primary-soft',
               )}
             >
@@ -74,8 +74,8 @@ function BarreLaterale({ pathname }: { pathname: string }) {
           )
         })}
       </nav>
-      <div className="mt-auto flex flex-col items-center gap-2 rounded-3xl bg-primary-soft p-5 text-center">
-        <Headset className="size-7 text-step-blue" aria-hidden="true" />
+      <div className="mt-auto flex shrink-0 flex-col items-center gap-1.5 rounded-3xl bg-primary-soft p-4 text-center">
+        <Headset className="size-6 text-step-blue" aria-hidden="true" />
         <p className="font-bold text-foreground">Une question ?</p>
         <p className="text-sm leading-snug text-muted-foreground">Notre équipe est là pour t&apos;aider.</p>
         <a
