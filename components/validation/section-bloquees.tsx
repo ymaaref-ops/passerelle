@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, Briefcase, Loader2, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Briefcase, ExternalLink, Loader2, RefreshCw } from 'lucide-react'
+import { useProfilCourant } from '@/lib/profil-courant'
 import { lancerDemarches, lireEtat, type DemarcheN8n } from '@/lib/n8n'
 
 const NOMS: Record<string, string> = {
@@ -136,6 +137,7 @@ export function SectionBloquees() {
 /** Résultat de la simulation de prime d'activité. */
 export function SectionPrime() {
   const { demarches } = useDemarches()
+  const profil = useProfilCourant()
   const d = (demarches ?? []).find((x) => x.aide_code === 'prime_activite' && x.cochee)
   if (!demarches || !d || d.statut === 'bloquee') return null
   const enCours = d.statut === 'en_cours'
@@ -168,6 +170,31 @@ export function SectionPrime() {
           d.resultat_agent?.etape_bloquante || 'Simulation terminée.'
         )}
       </p>
+
+      {!enCours && montant !== null && montant > 0 && (
+        <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-muted/60 p-4">
+          <p className="text-sm font-semibold text-foreground">Pour faire ta demande sur caf.fr, garde ces informations sous la main :</p>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
+            <li>Ton salaire net par mois : {profil?.salaire != null ? `${profil.salaire.toLocaleString('fr-FR')} €` : 'tes 3 dernières fiches de paie'}</li>
+            <li>Tes salaires des 3 derniers mois, mois par mois (sur tes fiches de paie)</li>
+            <li>Ton adresse et ton loyer{profil?.loyer != null ? ` (${profil.loyer.toLocaleString('fr-FR')} € charges comprises)` : ''}</li>
+            <li>Tes autres aides éventuelles (APL, bourse)</li>
+            <li>Ton numéro allocataire, si tu en as déjà un</li>
+          </ul>
+          <a
+            href="https://www.caf.fr/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-11 items-center gap-2 self-start rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          >
+            Faire ma demande sur caf.fr
+            <ExternalLink className="size-4" aria-hidden="true" />
+          </a>
+          <p className="text-xs text-muted-foreground">
+            Tu te connectes à ton espace Caf avec tes propres identifiants : Passerelle n&apos;envoie rien à ta place.
+          </p>
+        </div>
+      )}
     </section>
   )
 }
