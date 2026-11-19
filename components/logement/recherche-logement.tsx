@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, ArrowLeft, ExternalLink, Home, Loader2, Search, Send } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ChevronDown, ExternalLink, Home, Loader2, MapPin, Search, Send } from 'lucide-react'
+import { ChargementEtudiant } from '@/components/chargement-etudiant'
+import { JeuAttente } from '@/components/jeu-attente'
 import { buttonVariants } from '@/components/ui/button'
 import {
   lancerRecherche,
@@ -32,49 +34,188 @@ const euros = (v: number | null | undefined) =>
   v === null || v === undefined || Number.isNaN(Number(v)) ? '—' : `${Math.round(Number(v))} €`
 const liste = (v: string | string[] | null | undefined) => (Array.isArray(v) ? v : v ? [v] : [])
 
+function nombreOuNull(v: number | string | null | undefined): number | null {
+  if (v === null || v === undefined || v === '') return null
+  const n = Number(String(v).replace(',', '.').replace(/[^\d.]/g, ''))
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+/** Site de l'annonce : celui donné par l'agent, sinon le nom de domaine du lien. */
+function siteDe(l: Logement): string | null {
+  if (l.site) return l.site
+  try {
+    return l.url ? new URL(l.url).hostname.replace(/^www\./, '') : null
+  } catch {
+    return null
+  }
+}
+
+/** Photo de l'annonce ; si elle ne se charge pas (ou n'existe pas), une petite illustration. */
+function PhotoLogement({ src, titre }: { src?: string | null; titre: string }) {
+  const [rate, setRate] = useState(false)
+  if (src && /^https:\/\//.test(src) && !rate) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={`Photo : ${titre}`}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setRate(true)}
+        className="h-full w-full object-cover"
+      />
+    )
+  }
+  return (
+    <svg viewBox="0 0 160 110" className="h-full w-full" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+      <rect width="160" height="110" className="fill-primary-soft" />
+      <circle cx="128" cy="26" r="11" className="fill-card" />
+      <polygon points="38,58 80,26 122,58" className="fill-primary" />
+      <rect x="48" y="56" width="64" height="40" className="fill-card" />
+      <rect x="73" y="70" width="14" height="26" rx="2" className="fill-step-blue" />
+      <rect x="55" y="64" width="11" height="11" rx="1" className="fill-step-blue/30" />
+      <rect x="94" y="64" width="11" height="11" rx="1" className="fill-step-blue/30" />
+      <rect y="96" width="160" height="14" className="fill-step-blue/15" />
+    </svg>
+  )
+}
+
+function Info({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-semibold text-foreground">
+      {children}
+    </span>
+  )
+}
+
 function CarteLogement({ l }: { l: Logement }) {
+  const [ouvert, setOuvert] = useState(false)
   const etiquette = ETIQUETTES[l.eligibilite ?? ''] ?? null
   const alertes = liste(l.alertes)
+  const raisons = liste(l.raisons)
+  const equipements = liste(l.equipements)
+  const titre = l.titre ?? 'Logement'
+  const surface = nombreOuNull(l.surface_m2)
+  const pieces = nombreOuNull(l.pieces)
+  const meuble = l.meuble === true || /^oui/i.test(String(l.meuble ?? '')) ? 'Meublé' : l.meuble === false || /^non/i.test(String(l.meuble ?? '')) ? 'Non meublé' : null
+  const site = siteDe(l)
+
   return (
-    <li className="flex flex-col gap-3 rounded-3xl bg-card shadow-carte p-5 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <h3 className="text-lg font-bold text-foreground">
-          {l.rang ? `${l.rang}. ` : ''}
-          {l.titre ?? 'Logement'}
-        </h3>
+    <li className="flex flex-col overflow-hidden rounded-3xl bg-card shadow-carte">
+      <div className="relative h-44 bg-primary-soft">
+        <PhotoLogement src={l.photo} titre={titre} />
         {etiquette && (
-          <span className={cn('rounded-full px-3 py-1 text-sm font-semibold', etiquette.classe)}>{etiquette.label}</span>
+          <span className={cn('absolute top-3 left-3 rounded-full px-3 py-1 text-sm font-semibold shadow-sm', etiquette.classe)}>
+            {etiquette.label}
+          </span>
+        )}
+        {l.dans_budget !== null && l.dans_budget !== undefined && (
+          <span
+            className={cn(
+              'absolute top-3 right-3 rounded-full px-3 py-1 text-sm font-semibold shadow-sm',
+              l.dans_budget ? 'bg-success text-white' : 'bg-step-orange text-white',
+            )}
+          >
+            {l.dans_budget ? 'Dans ton budget' : 'Hors budget'}
+          </span>
         )}
       </div>
-      <p className="text-base text-foreground">
-        {euros(l.loyer_charges_comprises)} charges comprises − {euros(l.aide_mensuelle)} d&apos;aide CAF ={' '}
-        <span className="text-xl font-bold text-primary">{euros(l.reste_a_payer)}/mois</span>
-      </p>
-      {l.dans_budget !== null && l.dans_budget !== undefined && (
-        <p className={cn('text-sm font-semibold', l.dans_budget ? 'text-success' : 'text-step-orange')}>
-          {l.dans_budget ? 'Dans ton budget' : 'Hors budget'}
-        </p>
-      )}
-      {liste(l.raisons).length > 0 && (
-        <p className="text-sm text-muted-foreground">{liste(l.raisons).join(' · ')}</p>
-      )}
-      {alertes.length > 0 && (
-        <p className="flex items-start gap-2 text-sm text-danger">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          {alertes.join(' · ')}
-        </p>
-      )}
-      {l.url && (
-        <a
-          href={l.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 self-start text-sm font-semibold text-primary underline-offset-4 hover:underline"
+
+      <div className="flex flex-1 flex-col gap-3 p-5">
+        <div>
+          <h3 className="text-lg font-bold leading-snug text-foreground">
+            {l.rang ? `${l.rang}. ` : ''}
+            {titre}
+          </h3>
+          {l.adresse && (
+            <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <MapPin className="size-4 shrink-0" aria-hidden="true" />
+              {l.adresse}
+            </p>
+          )}
+        </div>
+
+        {(surface || pieces || meuble) && (
+          <div className="flex flex-wrap gap-1.5">
+            {surface && <Info>{surface} m²</Info>}
+            {pieces && <Info>{pieces} pièce{pieces > 1 ? 's' : ''}</Info>}
+            {meuble && <Info>{meuble}</Info>}
+          </div>
+        )}
+
+        <div className="flex items-end justify-between gap-3 rounded-2xl bg-muted p-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Tu paieras</p>
+            <p className="text-2xl font-extrabold text-primary">
+              {euros(l.reste_a_payer)}
+              <span className="text-sm font-bold">/mois</span>
+            </p>
+          </div>
+          <p className="text-right text-xs text-muted-foreground">
+            Loyer {euros(l.loyer_charges_comprises)} CC
+            <br />− aide CAF {euros(l.aide_mensuelle)}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          aria-expanded={ouvert}
+          onClick={() => setOuvert((o) => !o)}
+          className="mt-auto flex items-center justify-between rounded-xl text-sm font-semibold text-step-blue outline-none hover:underline focus-visible:ring-4 focus-visible:ring-ring/30"
         >
-          Voir l&apos;annonce
-          <ExternalLink className="size-4" aria-hidden="true" />
-        </a>
-      )}
+          {ouvert ? 'Moins d’infos' : 'Plus d’infos'}
+          <ChevronDown className={cn('size-4 transition-transform', ouvert && 'rotate-180')} aria-hidden="true" />
+        </button>
+
+        {ouvert && (
+          <div className="flex flex-col gap-3 border-t border-foreground/10 pt-3 text-sm">
+            {l.description && <p className="leading-relaxed text-foreground">{l.description}</p>}
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
+              <dt className="text-muted-foreground">Loyer charges comprises</dt>
+              <dd className="font-semibold text-foreground">{euros(l.loyer_charges_comprises)}</dd>
+              <dt className="text-muted-foreground">Aide au logement estimée</dt>
+              <dd className="font-semibold text-foreground">{euros(l.aide_mensuelle)}</dd>
+              {l.disponible_le && (
+                <>
+                  <dt className="text-muted-foreground">Disponible</dt>
+                  <dd className="font-semibold text-foreground">{l.disponible_le}</dd>
+                </>
+              )}
+              {site && (
+                <>
+                  <dt className="text-muted-foreground">Annonce sur</dt>
+                  <dd className="font-semibold text-foreground">{site}</dd>
+                </>
+              )}
+            </dl>
+            {equipements.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {equipements.map((e) => (
+                  <Info key={e}>{e}</Info>
+                ))}
+              </div>
+            )}
+            {raisons.length > 0 && <p className="text-muted-foreground">{raisons.join(' · ')}</p>}
+            {alertes.length > 0 && (
+              <p className="flex items-start gap-2 text-danger">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                {alertes.join(' · ')}
+              </p>
+            )}
+            {l.url && (
+              <a
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-10 items-center justify-center gap-1.5 self-start rounded-full bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90"
+              >
+                Voir l&apos;annonce
+                <ExternalLink className="size-4" aria-hidden="true" />
+              </a>
+            )}
+          </div>
+        )}
+      </div>
     </li>
   )
 }
@@ -162,7 +303,7 @@ export function RechercheLogement() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-5 rounded-3xl border-2 border-step-violet-border bg-step-violet-soft p-5 sm:p-6">
+      <section className="flex flex-col gap-5 rounded-3xl bg-card p-5 shadow-carte sm:p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5">
             <span className="font-medium text-foreground">Ville ou quartiers</span>
@@ -221,7 +362,7 @@ export function RechercheLogement() {
             disabled={!peutChercher}
             className={cn(
               buttonVariants({ size: 'lg' }),
-              'h-12 gap-2 rounded-2xl bg-step-violet px-6 text-base font-semibold text-white hover:bg-step-violet/90 disabled:cursor-not-allowed',
+              'h-12 gap-2 rounded-full px-6 text-base font-semibold disabled:cursor-not-allowed',
             )}
           >
             {envoi ? <Loader2 className="size-5 motion-safe:animate-spin" aria-hidden="true" /> : <Search className="size-5" aria-hidden="true" />}
@@ -241,10 +382,21 @@ export function RechercheLogement() {
       {sessionId && (
         <section aria-live="polite" className="flex flex-col gap-4">
           {enCours && !enAttenteDeToi && (
-            <p className="flex items-center gap-2 rounded-3xl bg-card shadow-carte p-5 text-foreground">
-              <Loader2 className="size-5 shrink-0 text-step-violet motion-safe:animate-spin" aria-hidden="true" />
-              L&apos;agent cherche des logements et simule ton aide pour chacun… Ça prend quelques minutes.
-            </p>
+            <>
+              <div className="flex items-center gap-4 rounded-3xl bg-card p-5 shadow-carte">
+                <ChargementEtudiant taille={56} />
+                <div>
+                  <p className="font-bold text-foreground">L&apos;agent visite les annonces pour toi…</p>
+                  <p className="text-sm text-muted-foreground">
+                    Il cherche des logements et simule ton aide pour chacun. Ça prend quelques minutes.
+                  </p>
+                </div>
+              </div>
+              <JeuAttente
+                titre="Pendant la recherche, joue un peu !"
+                note="L'agent continue de chercher pendant que tu joues : les logements s'affichent ici dès qu'il a fini."
+              />
+            </>
           )}
 
           {enAttenteDeToi && (
@@ -287,7 +439,7 @@ export function RechercheLogement() {
                 {etat.logements.length} logement{etat.logements.length > 1 ? 's' : ''} trouvé
                 {etat.logements.length > 1 ? 's' : ''}
               </h2>
-              <ul className="grid gap-4 md:grid-cols-2">
+              <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {etat.logements.map((l, i) => (
                   <CarteLogement key={l.url ?? i} l={l} />
                 ))}

@@ -273,3 +273,18 @@
 @media (prefers-reduced-motion: reduce) {
   .marcheur * { animation: none !important; }
 }
+
+/* Chargement « étudiant » : le bonhomme marche avec sa loupe, les maisons défilent derrière lui. */
+.chargement-decor { animation: chargement-defile 3s linear infinite; }
+.chargement-loupe { transform-box: fill-box; transform-origin: 20% 80%; animation: chargement-loupe 1.4s ease-in-out infinite alternate; }
+@keyframes chargement-defile {
+  from { transform: translateX(0); }
+  to { transform: translateX(-60px); }
+}
+@keyframes chargement-loupe {
+  from { transform: rotate(-8deg); }
+  to { transform: rotate(10deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chargement-decor, .chargement-loupe { animation: none !important; }
+}

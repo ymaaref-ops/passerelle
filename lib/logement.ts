@@ -26,6 +26,16 @@ export interface Logement {
   eligibilite?: 'eligible' | 'a_verifier' | 'non_eligible' | 'deja_loue' | string
   raisons?: string | string[] | null
   alertes?: string | string[] | null
+  // Champs demandés en plus pour les cartes (null si l'annonce ne le dit pas).
+  photo?: string | null
+  adresse?: string | null
+  surface_m2?: number | string | null
+  pieces?: number | string | null
+  meuble?: string | boolean | null
+  disponible_le?: string | null
+  site?: string | null
+  description?: string | null
+  equipements?: string | string[] | null
 }
 
 export interface EtatRecherche {
