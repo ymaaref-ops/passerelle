@@ -35,11 +35,17 @@ export function MenuCompte() {
 
   return (
     <div className="flex items-center gap-2 text-sm">
-      <span className="hidden max-w-[14rem] truncate text-muted-foreground sm:inline" title={session.email}>
-        {session.prenom ? `Bonjour ${session.prenom}` : session.email}
-      </span>
+      <Link
+        href="/profil"
+        title={session.email}
+        className="inline-flex h-9 max-w-[14rem] items-center gap-1.5 rounded-full border border-border px-3 font-semibold text-foreground hover:bg-muted"
+      >
+        <UserRound className="size-4 shrink-0" aria-hidden="true" />
+        <span className="truncate">{session.prenom ? `Mon profil · ${session.prenom}` : 'Mon profil'}</span>
+      </Link>
       <button
         type="button"
+        aria-label="Se déconnecter"
         onClick={() => {
           seDeconnecter()
           router.push('/')
@@ -47,7 +53,7 @@ export function MenuCompte() {
         className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 font-semibold text-foreground hover:bg-muted"
       >
         <LogOut className="size-4" aria-hidden="true" />
-        Se déconnecter
+        <span className="hidden sm:inline">Se déconnecter</span>
       </button>
     </div>
   )

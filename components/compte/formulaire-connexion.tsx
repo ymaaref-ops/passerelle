@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, LogIn, MailCheck, UserPlus } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
-import { creerCompte, jetonValide, seConnecter } from '@/lib/compte'
+import { creerCompte, jetonValide, renvoyerConfirmation, seConnecter } from '@/lib/compte'
 import { cn } from '@/lib/utils'
 
 type Mode = 'connexion' | 'creation'
@@ -25,6 +25,22 @@ export function FormulaireConnexion() {
   const [enCours, setEnCours] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
   const [aConfirmer, setAConfirmer] = useState(false)
+
+  const [renvoye, setRenvoye] = useState(false)
+
+  // Lien de confirmation expiré ou invalide : Supabase l'indique dans l'adresse.
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('error')) {
+      const code = new URLSearchParams(hash.replace(/^#/, '')).get('error_code')
+      setErreur(
+        code === 'otp_expired'
+          ? 'Ce lien de confirmation a expiré ou a déjà servi. Connecte-toi, ou crée ton compte à nouveau pour recevoir un nouveau lien.'
+          : "Le lien de confirmation n'a pas marché. Connecte-toi, ou demande un nouveau lien.",
+      )
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    }
+  }, [])
 
   // Déjà connecté : on passe directement aux démarches.
   useEffect(() => {
@@ -61,9 +77,29 @@ export function FormulaireConnexion() {
         <MailCheck className="size-8 text-step-blue" aria-hidden="true" />
         <h1 className="text-2xl font-bold text-foreground">Vérifie ta boîte mail</h1>
         <p className="leading-relaxed text-foreground">
-          On t&apos;a envoyé un lien à <strong>{email}</strong>. Clique dessus pour confirmer ton compte, puis reviens
-          ici pour te connecter.
+          On t&apos;a envoyé un lien à <strong>{email}</strong>. Clique dessus : tu reviendras directement sur
+          Passerelle, déjà connecté.
         </p>
+        <button
+          type="button"
+          disabled={renvoye}
+          onClick={async () => {
+            try {
+              await renvoyerConfirmation(email.trim())
+              setRenvoye(true)
+            } catch (err) {
+              setErreur(err instanceof Error ? err.message : "Le lien n'a pas pu être renvoyé.")
+            }
+          }}
+          className="self-start text-sm font-semibold text-primary underline-offset-4 hover:underline disabled:text-muted-foreground disabled:no-underline"
+        >
+          {renvoye ? 'Nouveau lien envoyé' : "Je n'ai rien reçu : renvoyer le lien"}
+        </button>
+        {erreur && (
+          <p role="alert" className="text-sm font-medium text-danger">
+            {erreur}
+          </p>
+        )}
         <button
           type="button"
           onClick={() => {

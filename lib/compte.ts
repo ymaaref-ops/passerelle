@@ -24,10 +24,28 @@ export interface DocumentEnregistre extends DocumentN8n {
   photo_supprimee_le?: string | null
 }
 
+export interface ProfilEtudiant {
+  nom: string | null
+  prenom: string | null
+  date_naissance: string | null
+  nationalite: string | null
+  etablissement: string | null
+  formation: string | null
+  adresse_logement: string | null
+  type_logement: string | null
+  loyer_hors_charges: number | null
+  charges: number | null
+  situation_pro: string | null
+  ressources_12_mois: number | null
+  boursier: boolean | null
+}
+
 export interface MonCompte {
   email: string | null
   prenom: string | null
+  inscrit_le: string | null
   etudiant_id: string | null
+  profil: ProfilEtudiant | null
   documents: DocumentEnregistre[]
 }
 
@@ -101,6 +119,11 @@ function versSession(r: ReponseAuth, prenomParDefaut: string | null = null): Ses
   }
 }
 
+/** Page où arrive le lien de confirmation envoyé par e-mail. */
+function adresseRetour(): string {
+  return `${window.location.origin}/connexion`
+}
+
 async function appelAuth(chemin: string, corps: unknown): Promise<{ r: ReponseAuth; statut: number }> {
   const reponse = await fetch(`${SUPABASE_URL}/auth/v1/${chemin}`, {
     method: 'POST',
@@ -113,10 +136,60 @@ async function appelAuth(chemin: string, corps: unknown): Promise<{ r: ReponseAu
 
 /** Crée un compte. Renvoie 'connecte', ou 'confirmer' si un e-mail de confirmation a été envoyé. */
 export async function creerCompte(prenom: string, email: string, motDePasse: string): Promise<'connecte' | 'confirmer'> {
-  const { r, statut } = await appelAuth('signup', { email, password: motDePasse, data: { prenom } })
+  const { r, statut } = await appelAuth(`signup?redirect_to=${encodeURIComponent(adresseRetour())}`, {
+    email,
+    password: motDePasse,
+    data: { prenom },
+  })
   if (statut >= 400) throw new Error(messageErreur(r, statut))
   if (!r.access_token) return 'confirmer'
   enregistrerSession(versSession(r, prenom))
+  return 'connecte'
+}
+
+/** Renvoie l'e-mail de confirmation. */
+export async function renvoyerConfirmation(email: string): Promise<void> {
+  const { r, statut } = await appelAuth(`resend?redirect_to=${encodeURIComponent(adresseRetour())}`, {
+    type: 'signup',
+    email,
+  })
+  if (statut >= 400) throw new Error(messageErreur(r, statut))
+}
+
+/**
+ * Arrivée depuis le lien de confirmation : Supabase met la session dans l'adresse (#access_token=…).
+ * Renvoie 'connecte', un message d'erreur, ou null s'il n'y a rien à lire.
+ */
+export async function sessionDepuisLien(): Promise<'connecte' | { erreur: string } | null> {
+  if (typeof window === 'undefined') return null
+  const hash = window.location.hash.replace(/^#/, '')
+  if (!hash.includes('access_token=') && !hash.includes('error')) return null
+  const p = new URLSearchParams(hash)
+  window.history.replaceState(null, '', window.location.pathname + window.location.search)
+  if (p.get('error') || p.get('error_code')) {
+    const code = p.get('error_code') ?? ''
+    return {
+      erreur:
+        code === 'otp_expired'
+          ? 'Ce lien de confirmation a expiré ou a déjà servi. Connecte-toi, ou demande un nouveau lien.'
+          : "Le lien de confirmation n'a pas marché. Connecte-toi, ou demande un nouveau lien.",
+    }
+  }
+  const access = p.get('access_token')
+  const refresh = p.get('refresh_token')
+  if (!access || !refresh) return null
+  const reponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: CLE_PUBLIQUE, Authorization: `Bearer ${access}` },
+  })
+  if (!reponse.ok) return { erreur: "Le lien de confirmation n'a pas marché. Connecte-toi." }
+  const user = (await reponse.json()) as { email?: string; user_metadata?: { prenom?: string } }
+  enregistrerSession({
+    access_token: access,
+    refresh_token: refresh,
+    expires_at: Date.now() + Number(p.get('expires_in') ?? 3600) * 1000,
+    email: user.email ?? '',
+    prenom: user.user_metadata?.prenom ?? null,
+  })
   return 'connecte'
 }
 
