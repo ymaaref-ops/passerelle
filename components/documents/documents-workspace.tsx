@@ -189,6 +189,18 @@ export function DocumentsWorkspace() {
     }
   }
 
+  /** Retire un document de la liste : le dossier devra être renvoyé pour être relu sans lui. */
+  function supprimer(type: DocumentRequis) {
+    if (phase === 'analyse') return
+    setFichiers((prev) => ({ ...prev, [type]: null }))
+    setErreursFichier((prev) => ({ ...prev, [type]: undefined }))
+    setEnregistres(false)
+    if (phase === 'resultat') {
+      setPhase('saisie')
+      setLus([])
+    }
+  }
+
   function ajouterAutres(liste: FileList | File[]) {
     if (phase === 'analyse') return
     const nouveaux: File[] = []
@@ -453,6 +465,7 @@ export function DocumentsWorkspace() {
               onChoisir={() => choisirFichier(definition.type)}
               onPhoto={() => prendrePhoto(definition.type)}
               onDepot={(fichier) => ajouter(definition.type, fichier)}
+              onSupprimer={() => supprimer(definition.type)}
             />
           )
         })}

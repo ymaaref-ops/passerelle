@@ -11,6 +11,7 @@ import {
   Receipt,
   RefreshCw,
   ScanText,
+  Trash2,
   UploadCloud,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -37,6 +38,7 @@ interface DocumentCardProps {
   onChoisir: () => void
   onPhoto: () => void
   onDepot: (fichier: File) => void
+  onSupprimer?: () => void
 }
 
 export function DocumentCard({
@@ -48,6 +50,7 @@ export function DocumentCard({
   onChoisir,
   onPhoto,
   onDepot,
+  onSupprimer,
 }: DocumentCardProps) {
   const [survol, setSurvol] = useState(false)
   const Icon = ICONES[definition.type]
@@ -118,10 +121,25 @@ export function DocumentCard({
               <FileText className="size-4 shrink-0 text-step-blue" aria-hidden="true" />
               <span className="truncate">{nomFichier}</span>
             </p>
-            <Button type="button" variant="ghost" size="sm" onClick={onChoisir} className="text-step-blue">
-              <RefreshCw aria-hidden="true" />
-              Remplacer
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button type="button" variant="ghost" size="sm" onClick={onChoisir} className="text-step-blue">
+                <RefreshCw aria-hidden="true" />
+                Remplacer
+              </Button>
+              {onSupprimer && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={onSupprimer}
+                  className="text-danger hover:text-danger"
+                  aria-label={`Supprimer : ${definition.titre}`}
+                >
+                  <Trash2 aria-hidden="true" />
+                  Supprimer
+                </Button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3 py-2">
