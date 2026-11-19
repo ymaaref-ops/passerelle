@@ -221,6 +221,10 @@ export const TIROIRS: Tiroir[] = [
         aide: "C'est le cas de presque toutes les résidences Crous.",
         visible: (r) => r.type_logement === 'crous',
       }),
+      OUI_NON('logement_meuble', 'Ton logement est-il meublé ?', false, {
+        aide: 'Regarde ton bail : il est écrit « location meublée » ou « location vide (non meublée) ».',
+        visible: prive,
+      }),
       {
         cle: 'mode_occupation',
         label: 'Tu vis…',
