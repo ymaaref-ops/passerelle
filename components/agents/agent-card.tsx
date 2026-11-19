@@ -1,6 +1,6 @@
 'use client'
 
-import { BriefcaseBusiness, CircleCheck, Globe, Home, KeyRound, Landmark, ShieldCheck } from 'lucide-react'
+import { BriefcaseBusiness, CircleCheck, Globe, Home, KeyRound, Landmark, ShieldCheck, GraduationCap } from 'lucide-react'
 import type { AgentId, AgentStatut } from '@/lib/agents'
 import { cn } from '@/lib/utils'
 import { BarreMarcheur } from '@/components/barre-marcheur'
@@ -12,6 +12,7 @@ const ICONES: Record<AgentId, typeof Home> = {
   apl: Home,
   'prime-activite': BriefcaseBusiness,
   prets: Landmark,
+  bourse: GraduationCap,
   visale: ShieldCheck,
   'mobili-jeune': KeyRound,
 }

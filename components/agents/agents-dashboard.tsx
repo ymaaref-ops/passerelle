@@ -22,6 +22,7 @@ const AGENT_PAR_AIDE: Record<string, AgentId> = {
   'pret-sg': 'prets',
   'pret-cic': 'prets',
   'pret-etat': 'prets',
+  'bourse-crous': 'bourse',
   visale: 'visale',
   'mobili-jeune': 'mobili-jeune',
 }

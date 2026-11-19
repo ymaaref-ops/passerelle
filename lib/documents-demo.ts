@@ -54,8 +54,7 @@ export const DOCUMENTS_REQUIS: DefinitionDocument[] = [
  * Documents demandés selon les réponses du questionnaire du début :
  * - bail : seulement si l'étudiant est locataire ;
  * - fiche de paie : seulement s'il travaille (job ou alternance) ;
- * - avis d'imposition des parents : seulement s'il ne sait pas s'il a droit à la bourse, et en facultatif
- *   (il sert à estimer la bourse ; inutile s'il a déjà répondu oui ou non) ;
+ * - avis d'imposition des parents : facultatif, nécessaire pour simuler la bourse Crous ;
  * - contrat d'alternance : seulement en alternance, en facultatif (utile pour Mobili-Jeune).
  */
 export function documentsPour(situation: { logement: string; activite: string; bourse?: string }): DefinitionDocument[] {
@@ -66,9 +65,14 @@ export function documentsPour(situation: { logement: string; activite: string; b
       case 'fiche_paie':
         return situation.activite !== 'aucune' ? [d] : []
       case 'avis_imposition':
-        return situation.bourse === 'ne_sais_pas'
-          ? [{ ...d, facultatif: true, description: `${d.description} Il sert à estimer ta bourse Crous.` }]
-          : []
+        // Facultatif : nécessaire seulement pour simuler la bourse Crous (revenus des parents).
+        return [
+          {
+            ...d,
+            facultatif: true,
+            description: `${d.description} Nécessaire pour simuler ta bourse Crous, même si tu n'es pas encore boursier.`,
+          },
+        ]
       case 'contrat_alternance':
         return situation.activite === 'alternance' ? [{ ...d, facultatif: true }] : []
       default:

@@ -1,6 +1,6 @@
 import { lireEtat, type DemarcheN8n } from '@/lib/n8n'
 
-export type AgentId = 'apl' | 'prime-activite' | 'prets' | 'visale' | 'mobili-jeune'
+export type AgentId = 'apl' | 'prime-activite' | 'prets' | 'bourse' | 'visale' | 'mobili-jeune'
 
 export type StatutAgent = 'attente' | 'en_cours' | 'besoin' | 'termine'
 
@@ -71,6 +71,14 @@ const AGENTS: {
     duree: 300_000,
   },
   {
+    id: 'bourse',
+    code: 'bourse_crous',
+    nom: 'Simulation bourse Crous',
+    site: 'etudiant.gouv.fr',
+    enCours: "L'agent remplit le simulateur de bourse sur critères sociaux…",
+    duree: 180_000,
+  },
+  {
     id: 'visale',
     code: 'visale',
     nom: 'Demande Visale',
@@ -110,6 +118,14 @@ function resumeResultat(code: string, d: DemarcheN8n): string {
   if (code === 'prime_activite') {
     if (Number(d.montant_estime) === 0) return "Pas de prime d'activité selon le simulateur"
     return montant ? `Prime d'activité estimée : ${montant}` : 'Simulation terminée'
+  }
+  if (code === 'bourse_crous') {
+    const r = (d.resultat_agent?.reponse ?? {}) as Record<string, unknown>
+    const echelon = r.echelon != null && r.echelon !== '' ? String(r.echelon) : null
+    if (echelon && /non|aucun/i.test(echelon)) return "Pas de bourse selon le simulateur"
+    const annuel = formaterMontant(r.montant_annuel as number | null, ' €/an')
+    if (echelon) return `Échelon ${echelon}${annuel ? ` · ${annuel}` : montant ? ` · ${montant}` : ''}`
+    return montant ? `Bourse estimée : ${montant}` : 'Simulation terminée'
   }
   if (code === 'pret_garanti') {
     const resultats = d.resultat_agent?.reponse?.resultats

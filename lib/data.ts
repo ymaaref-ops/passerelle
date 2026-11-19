@@ -180,7 +180,7 @@ export const aides: Aide[] = [
     lien_officiel: 'https://www.messervices.etudiant.gouv.fr',
     source: 'messervices.etudiant.gouv.fr',
     date_verification: DATE_VERIFICATION,
-    niveau: 'guidee',
+    niveau: 'automatisee',
     regle_eligibilite: 'age < 28 ET ressources_foyer <= plafond_crous',
   },
   {

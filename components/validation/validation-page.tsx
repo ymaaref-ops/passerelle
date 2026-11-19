@@ -20,21 +20,22 @@ import { ConfirmationEnvoi, type StatutMail } from './confirmation-envoi'
 import { SectionApl } from './section-apl'
 import { SectionDocuments } from './section-documents'
 import { SectionPret } from './section-pret'
+import { SectionBourse } from './section-bourse'
 
 const COULEUR = STEP_COLORS.orange
 const NB_BANQUES = Object.keys(DEMARCHES).length - 1
 
 /** Démarches réellement demandées par l'étudiant (cochées et lancées), lues dans n8n. */
-function useDemandees(): { apl: boolean; prets: boolean } | null {
-  const [demandees, setDemandees] = useState<{ apl: boolean; prets: boolean } | null>(null)
+function useDemandees(): { apl: boolean; prets: boolean; bourse: boolean } | null {
+  const [demandees, setDemandees] = useState<{ apl: boolean; prets: boolean; bourse: boolean } | null>(null)
   useEffect(() => {
     lireEtat()
       .then((etat) => {
         const cochee = (code: string) =>
           (etat.demarches ?? []).some((d) => d.aide_code === code && d.cochee && d.statut !== 'proposee')
-        setDemandees({ apl: cochee('apl'), prets: cochee('pret_garanti') })
+        setDemandees({ apl: cochee('apl'), prets: cochee('pret_garanti'), bourse: cochee('bourse_crous') })
       })
-      .catch(() => setDemandees({ apl: true, prets: false }))
+      .catch(() => setDemandees({ apl: true, prets: false, bourse: false }))
   }, [])
   return demandees
 }
@@ -123,12 +124,13 @@ export function ValidationPage() {
       </div>
 
       {demandees === null && <p className="text-muted-foreground">Chargement de tes démarches…</p>}
-      {demandees && !demandees.apl && !demandees.prets && (
+      {demandees && !demandees.apl && !demandees.prets && !demandees.bourse && (
         <p className="rounded-3xl border border-border bg-card p-6 text-foreground">
           Aucune démarche à relire : coche une aide sur la page Choix pour que nos agents s&apos;en occupent.
         </p>
       )}
       {demandees?.apl && <SectionApl envoyeeLe={envois.apl} onEnvoyer={marquerEnvoyee} />}
+      {demandees?.bourse && <SectionBourse />}
       {demandees?.prets && <SectionPret envois={envois} onEnvoyer={marquerEnvoyee} />}
       {demandees?.prets && <SectionDocuments />}
     </div>
