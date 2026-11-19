@@ -101,7 +101,24 @@ export function DemandeAgent({ aide }: { aide: 'visale' | 'mobili_jeune' }) {
     }
   }
 
+  /** Repart de zéro : oublie la demande précédente (ancienne version de l'agent) et en lance une nouvelle. */
+  async function recommencer() {
+    if (minuteur.current) window.clearTimeout(minuteur.current)
+    try {
+      window.sessionStorage.removeItem(CLE(aide))
+    } catch {
+      // Stockage indisponible.
+    }
+    setSessionId(null)
+    setEtat(null)
+    await lancer()
+  }
+
   const attendToi = etat?.statut === 'idle'
+  const fiche = lireFiche(etat?.message ?? null)
+  // Fiche au nouveau format (étapes et réponses à recopier) : sinon, réponse d'une ancienne version de l'agent.
+  const ficheValide =
+    fiche !== null && (Array.isArray(fiche.reponses_formulaire) || Array.isArray(fiche.etapes_etudiant))
   const { action, etape } = lireMessage(etat?.message ?? null)
   const fini = etat ? TERMINAUX.includes(etat.statut) : false
 
@@ -110,8 +127,8 @@ export function DemandeAgent({ aide }: { aide: 'visale' | 'mobili_jeune' }) {
       {!sessionId && (
         <>
           <p className="text-base text-foreground">
-            L&apos;agent prépare ta demande sur ton compte Action Logement. Tu te connectes toi-même, et il
-            s&apos;arrête avant l&apos;envoi.
+            L&apos;agent vérifie que tu y as droit et te prépare une fiche avec toutes les réponses du formulaire.
+            Tu crées ton compte toi-même et tu envoies ta demande.
           </p>
           <button
             type="button"
@@ -178,17 +195,26 @@ export function DemandeAgent({ aide }: { aide: 'visale' | 'mobili_jeune' }) {
         </div>
       )}
 
-      {fini && etat?.statut === 'completed' && lireFiche(etat.message) ? (
-        <FicheDemande
-          fiche={lireFiche(etat.message)!}
-          site={aide === 'visale' ? 'visale.fr' : 'actionlogement.fr'}
-        />
+      {fini && etat?.statut === 'completed' && ficheValide ? (
+        <FicheDemande fiche={fiche!} site={aide === 'visale' ? 'visale.fr' : 'actionlogement.fr'} />
       ) : fini ? (
-        <p className="text-base font-semibold text-step-green">
+        <p className="text-base font-semibold text-foreground">
           {etat?.statut === 'completed'
-            ? "Ta demande est prête : relis-la et envoie-la toi-même sur le site."
-            : "L'agent s'est arrêté avant la fin. On te guide pour terminer."}
+            ? "Cette demande a été faite avec l'ancienne version de l'agent. Relance-la pour obtenir ta fiche à recopier."
+            : "L'agent s'est arrêté avant la fin. Relance-le pour obtenir ta fiche."}
         </p>
+      ) : null}
+
+      {(fini && !ficheValide) || attendToi ? (
+        <button
+          type="button"
+          onClick={recommencer}
+          disabled={envoi}
+          className="inline-flex h-11 items-center justify-center gap-2 self-start rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring/30 disabled:opacity-60"
+        >
+          {envoi ? <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}
+          Relancer la demande
+        </button>
       ) : null}
 
       {erreur && (
