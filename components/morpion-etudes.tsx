@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { BookOpen, Bot, GraduationCap, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BoutonSon } from '@/components/bouton-son'
+import { changerMuet, estMuet, jouerSon } from '@/lib/sons'
 
 /**
  * Morpion (X / O) contre le robot, aux couleurs des études :
@@ -73,6 +75,8 @@ export function MorpionEtudes({
   const [premier, setPremier] = useState<Joueur>('toi')
   const [tour, setTour] = useState<Joueur>('toi')
   const [scores, setScores] = useState({ toi: 0, robot: 0, nul: 0 })
+  const [muet, setMuet] = useState(false)
+  useEffect(() => setMuet(estMuet()), [])
 
   const fin = gagnant(grille)
   const pleine = grille.every(Boolean)
@@ -87,15 +91,18 @@ export function MorpionEtudes({
         suite[coupRobot(g)] = 'robot'
         return suite
       })
+      jouerSon('robot', muet)
       setTour('toi')
     }, 550)
     return () => window.clearTimeout(id)
-  }, [tour, terminee])
+  }, [tour, terminee, muet])
 
   // Compte des points à la fin de chaque partie.
   useEffect(() => {
     if (!terminee) return
     setScores((s) => (fin ? { ...s, [fin.joueur]: s[fin.joueur] + 1 } : { ...s, nul: s.nul + 1 }))
+    // Petit délai : le son de fin arrive après celui du dernier pion.
+    window.setTimeout(() => jouerSon(fin ? (fin.joueur === 'toi' ? 'victoire' : 'defaite') : 'nul', muet), 150)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [terminee])
 
@@ -103,6 +110,7 @@ export function MorpionEtudes({
     if (grille[i] || tour !== 'toi' || terminee) return
     const suite = [...grille]
     suite[i] = 'toi'
+    jouerSon('pose', muet)
     setGrille(suite)
     setTour('robot')
   }
@@ -133,9 +141,16 @@ export function MorpionEtudes({
             <span className="flex size-10 items-center justify-center rounded-full bg-primary-soft text-step-blue">
               <Bot className="size-5" aria-hidden="true" />
             </span>
-            <h2 id="titre-morpion" className="text-lg font-bold text-foreground">
+            <h2 id="titre-morpion" className="flex-1 text-lg font-bold text-foreground">
               {titre}
             </h2>
+            <BoutonSon
+              muet={muet}
+              onChange={(m) => {
+                setMuet(m)
+                changerMuet(m)
+              }}
+            />
           </div>
           <p className="text-sm text-muted-foreground">
             Aligne 3 toques de diplômé avant que le robot aligne 3 livres.

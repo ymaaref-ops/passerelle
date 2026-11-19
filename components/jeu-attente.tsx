@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Gamepad2, RotateCcw, Trophy } from 'lucide-react'
+import { BoutonSon } from '@/components/bouton-son'
+import { changerMuet, estMuet, jouerSon } from '@/lib/sons'
 
 /**
  * Petit jeu pendant l'attente des agents, façon « dinosaure de Chrome » :
@@ -366,6 +368,8 @@ export function JeuAttente({
   const [score, setScore] = useState(0)
   const [record, setRecord] = useState(0)
   const etatRef = useRef<Etat>('pret')
+  const [muet, setMuet] = useState(false)
+  const muetRef = useRef(false)
   const jeu = useRef({
     y: SOL,
     vy: 0,
@@ -383,6 +387,8 @@ export function JeuAttente({
   useEffect(() => {
     try {
       setRecord(Number(window.localStorage.getItem(CLE_RECORD)) || 0)
+      muetRef.current = estMuet()
+      setMuet(muetRef.current)
     } catch {
       // Stockage indisponible : pas de record gardé.
     }
@@ -407,7 +413,10 @@ export function JeuAttente({
     }
     if (etatRef.current === 'pret') changerEtat('joue')
     const j = jeu.current
-    if (j.y >= SOL - 0.5) j.vy = SAUT
+    if (j.y >= SOL - 0.5) {
+      j.vy = SAUT
+      jouerSon('saut', muetRef.current)
+    }
   }, [reinitialiser])
 
   // Taille du canevas (nette sur les écrans haute définition).
@@ -487,6 +496,7 @@ export function JeuAttente({
           const marge = 4
           if (p.x < o.x + o.l - marge && p.x + p.l > o.x + marge && p.y < o.y + o.h - marge && p.y + p.h > o.y + marge) {
             changerEtat('perdu')
+            jouerSon('perdu', muetRef.current)
             const final = j.score
             setRecord((r) => {
               const nouveau = Math.max(r, final)
@@ -504,6 +514,7 @@ export function JeuAttente({
           if (Math.abs(b.x - (X_PERSO + 20)) < 18 && Math.abs(b.y - (j.y - 24)) < 28) {
             b.pris = true
             const points = b.type === 'diplome' ? 200 : 50
+            jouerSon(b.type === 'diplome' ? 'diplome' : 'bonus', muetRef.current)
             j.distance += points * 10
             j.messages.push({ texte: b.type === 'diplome' ? '+200 Diplôme !' : '+50 Aide trouvée', x: b.x, y: b.y - 14, vie: 50 })
           }
@@ -556,6 +567,7 @@ export function JeuAttente({
             </p>
           </div>
         </div>
+        <div className="flex items-center gap-3">
         <p className="flex items-center gap-3 font-semibold text-foreground tabular-nums">
           <span>Score {String(score).padStart(5, '0')}</span>
           <span className="flex items-center gap-1 text-step-orange">
@@ -563,6 +575,15 @@ export function JeuAttente({
             {String(record).padStart(5, '0')}
           </span>
         </p>
+        <BoutonSon
+          muet={muet}
+          onChange={(m) => {
+            muetRef.current = m
+            setMuet(m)
+            changerMuet(m)
+          }}
+        />
+        </div>
       </div>
 
       <div ref={boite} className="relative overflow-hidden rounded-2xl">
