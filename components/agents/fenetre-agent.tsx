@@ -4,10 +4,15 @@ import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ExternalLink, Loader2, Send } from 'lucide-react'
 import { repondreDemande } from '@/lib/demandes'
+import { repondreAgent } from '@/lib/logement'
 
 /** Seuls les liens de partage H sont lus (page publique en lecture seule). */
 const PREFIXE_PARTAGE = 'https://agp.eu.hcompany.ai/share/'
 const INTERVALLE_MS = 4000
+/** Une vérification anti-robot se passe dans le navigateur de l'agent : l'étudiant la voit mais ne peut pas la cocher d'ici. */
+const MOTS_CAPTCHA = /captcha|robot|cloudflare|v[ée]rification|humain/i
+const MESSAGE_PASSER =
+  'Un CAPTCHA bloque cette annonce : passe-la, marque-la « non lue (CAPTCHA) » et continue avec les autres annonces.'
 
 interface Observation {
   url: string | null
@@ -67,6 +72,8 @@ export function FenetreAgent() {
   const session = params.get('session') ?? ''
   const lienBrut = params.get('lien') ?? ''
   const lien = lienBrut.startsWith(PREFIXE_PARTAGE) ? lienBrut : null
+  // Quel agent répond : logement (passerelle-logement) ou demande (Visale, Mobili-Jeune).
+  const source = params.get('source') === 'logement' ? 'logement' : 'demande'
 
   const [vue, setVue] = useState<Vue | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
@@ -102,7 +109,7 @@ export function FenetreAgent() {
     setEnvoi(true)
     setErreur(null)
     try {
-      await repondreDemande(session, texte.trim())
+      await (source === 'logement' ? repondreAgent : repondreDemande)(session, texte.trim())
       setReponse('')
       setEnvoye(true)
       setVue((v) => (v ? { ...v, statut: 'running' } : v))
@@ -118,6 +125,10 @@ export function FenetreAgent() {
   }
 
   const attend = vue?.statut === 'idle'
+  // L'agent logement répond en texte : sa demande est son dernier message.
+  const demandeTexte =
+    vue?.demande ?? (source === 'logement' && vue?.messages.length ? vue.messages[vue.messages.length - 1] : null)
+  const captcha = attend && source === 'logement' && MOTS_CAPTCHA.test(`${demandeTexte ?? ''} ${vue?.observation?.titre ?? ''}`)
   let site: string | null = null
   try {
     site = vue?.observation?.url ? new URL(vue.observation.url).host : null
@@ -139,10 +150,45 @@ export function FenetreAgent() {
 
       {attend && (
         <section className="flex flex-col gap-3 rounded-2xl border-2 border-step-orange bg-step-orange-soft p-4">
-          <p className="font-semibold text-foreground">L&apos;agent a besoin de toi</p>
-          {vue?.demande && <p className="leading-relaxed text-foreground">{vue.demande}</p>}
+          <p className="font-semibold text-foreground">
+            {captcha ? "Une vérification anti-robot bloque l'agent" : "L'agent a besoin de toi"}
+          </p>
+          {demandeTexte && <p className="leading-relaxed text-foreground">{demandeTexte.replace(/\*\*/g, '')}</p>}
+          {captcha && (
+            <>
+              <p className="text-sm leading-relaxed text-foreground">
+                Tu la vois sur l&apos;écran de l&apos;agent ci-dessous. Elle se trouve dans le navigateur de
+                l&apos;agent : tu ne peux pas la cocher d&apos;ici. Dis-lui de passer à l&apos;annonce suivante, ou
+                regarde l&apos;annonce toi-même.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <button
+                  type="button"
+                  disabled={envoi}
+                  onClick={() => envoyer(MESSAGE_PASSER)}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {envoi ? <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" /> : null}
+                  Passer cette annonce
+                </button>
+                {vue?.observation?.url && (
+                  <a
+                    href={vue.observation.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                  >
+                    Ouvrir l&apos;annonce moi-même
+                    <ExternalLink className="size-3.5" aria-hidden="true" />
+                  </a>
+                )}
+              </div>
+            </>
+          )}
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">Ta réponse (ton e-mail, le code reçu…)</span>
+            <span className="text-sm font-medium text-foreground">
+              {source === 'logement' ? "Ta réponse à l'agent" : 'Ta réponse (ton e-mail, le code reçu…)'}
+            </span>
             <div className="flex gap-2">
               <input
                 value={reponse}
@@ -163,7 +209,7 @@ export function FenetreAgent() {
               </button>
             </div>
           </label>
-          {vue?.observation?.url && (
+          {source === 'demande' && vue?.observation?.url && (
             <p className="text-sm text-muted-foreground">
               Ton mot de passe reste à toi. Tu peux aussi faire cette étape toi-même :{' '}
               <a
@@ -178,13 +224,15 @@ export function FenetreAgent() {
               , puis dis à l&apos;agent « c&apos;est fait ».
             </p>
           )}
-          <button
-            type="button"
-            onClick={() => envoyer("C'est fait, tu peux continuer.")}
-            className="self-start text-sm font-semibold text-primary underline-offset-4 hover:underline"
-          >
-            C&apos;est fait : l&apos;agent peut continuer
-          </button>
+          {!captcha && (
+            <button
+              type="button"
+              onClick={() => envoyer("C'est fait, tu peux continuer.")}
+              className="self-start text-sm font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              C&apos;est fait : l&apos;agent peut continuer
+            </button>
+          )}
         </section>
       )}
       {envoye && !attend && <p className="text-sm font-medium text-success">Réponse envoyée, l&apos;agent reprend.</p>}

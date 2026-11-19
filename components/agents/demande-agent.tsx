@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Loader2, Play, Send } from 'lucide-react'
 import { lancerDemande, lireDemande, repondreDemande, type EtatDemande } from '@/lib/demandes'
+import { adresseFenetre, ouvrirFenetre } from '@/lib/fenetre'
 import { getEtudiantId } from '@/lib/n8n'
 
 const TERMINAUX = ['completed', 'failed', 'timed_out', 'interrupted']
@@ -27,21 +28,6 @@ function lireMessage(brut: string | null): { action: string | null; etape: strin
   }
 }
 
-/** Ouvre la fenêtre de l'agent dans une fenêtre pop-up, à côté de Passerelle. */
-function ouvrirFenetre(lien: string) {
-  const largeur = Math.min(1100, window.screen.availWidth - 80)
-  const hauteur = Math.min(860, window.screen.availHeight - 80)
-  const gauche = Math.max(0, (window.screen.availWidth - largeur) / 2)
-  const haut = Math.max(0, (window.screen.availHeight - hauteur) / 2)
-  const fenetre = window.open(
-    lien,
-    'passerelle-agent',
-    `popup=yes,width=${largeur},height=${hauteur},left=${gauche},top=${haut}`,
-  )
-  // Pop-up bloquée : on ouvre dans un nouvel onglet.
-  if (!fenetre) window.open(lien, '_blank', 'noopener')
-  else fenetre.focus()
-}
 const CLE = (aide: string) => `passerelle_demande_${aide}`
 
 /** Pilotage d'un agent de demande (Visale, Mobili-Jeune) : l'étudiant le lance, se connecte lui-même, l'agent s'arrête avant l'envoi. */
@@ -153,11 +139,7 @@ export function DemandeAgent({ aide }: { aide: 'visale' | 'mobili_jeune' }) {
           {etat?.lien && (
             <button
               type="button"
-              onClick={() =>
-                ouvrirFenetre(
-                  `/fenetre-agent?session=${encodeURIComponent(sessionId ?? '')}&lien=${encodeURIComponent(etat.lien as string)}`,
-                )
-              }
+              onClick={() => ouvrirFenetre(adresseFenetre(sessionId ?? '', etat.lien as string))}
               className="inline-flex h-11 items-center justify-center gap-2 self-start rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring/30"
             >
               <ExternalLink className="size-4" aria-hidden="true" />

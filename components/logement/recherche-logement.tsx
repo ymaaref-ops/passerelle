@@ -12,6 +12,7 @@ import {
   type EtatRecherche,
   type Logement,
 } from '@/lib/logement'
+import { adresseFenetre, ouvrirFenetre } from '@/lib/fenetre'
 import { getEtudiantId } from '@/lib/n8n'
 import { lireSituation } from '@/lib/session'
 import { cn } from '@/lib/utils'
@@ -267,15 +268,14 @@ export function RechercheLogement() {
                 </button>
               </div>
               {etat?.lien && (
-                <a
-                  href={etat.lien}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 self-start text-sm font-semibold text-primary hover:underline"
+                <button
+                  type="button"
+                  onClick={() => ouvrirFenetre(adresseFenetre(sessionId ?? '', etat.lien as string, 'logement'))}
+                  className="inline-flex h-11 items-center justify-center gap-2 self-start rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-ring/30"
                 >
-                  Ouvrir la fenêtre de l&apos;agent
                   <ExternalLink className="size-4" aria-hidden="true" />
-                </a>
+                  Ouvrir la fenêtre de l&apos;agent
+                </button>
               )}
             </div>
           )}
