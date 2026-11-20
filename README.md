@@ -18,7 +18,7 @@ Projet de la **Team 1** pour le hackathon **« Build The Future » 2026** (Eugen
 
 ## Sommaire
 
-[Le problème](#le-problème) · [La solution](#la-solution) · [Tester en 3 minutes](#tester-en-3-minutes) · [Le parcours](#le-parcours) · [Architecture](#architecture) · [Stack](#stack) · [Business model](#business-model) · [Lancer en local](#lancer-le-site-en-local) · [Organisation du dépôt](#organisation-du-dépôt) · [Documents](#documents-du-projet) · [Équipe](#équipe)
+[Le problème](#le-problème) · [La solution](#la-solution) · [Tester en 3 minutes](#tester-en-3-minutes) · [Le parcours](#le-parcours) · [Architecture](#architecture) · [Résultats mesurés](#résultats-mesurés) · [Stack](#stack) · [Business model](#business-model) · [Lancer en local](#lancer-le-site-en-local) · [Organisation du dépôt](#organisation-du-dépôt) · [Documents](#documents-du-projet) · [Équipe](#équipe)
 
 ## Le problème
 
@@ -93,7 +93,26 @@ flowchart LR
 
 Les agents ne valident et n'envoient jamais une demande : ils s'arrêtent avant le dernier bouton, et c'est l'étudiant qui valide sur le site officiel.
 
-Chaque passage d'agent est enregistré dans la table `passages_agents`. La vue `mesures_agents` (dans [`supabase/schema.sql`](supabase/schema.sql)) en tire, par site, le **taux de réussite**, la **durée moyenne**, les **crédits consommés** et le nombre de **montants justes** (écart d'1 € maximum avec le montant attendu).
+## Résultats mesurés
+
+Chaque passage d'agent est enregistré dans la table `passages_agents` (vue `mesures_agents`, dans [`supabase/schema.sql`](supabase/schema.sql)). Chiffres relevés le 20/11/2026, sur **60 passages réels** des agents H entre le 18 et le 20 novembre :
+
+| Agent H | Site | Passages | Réussis | Taux de réussite | Durée moyenne d'un passage réussi |
+|---|---|---|---|---|---|
+| Matching des aides | (dossier Passerelle) | 25 | 25 | **100 %** | 34 s |
+| Comparateur de prêts | sites des banques | 9 | 9 | **100 %** | 3 min 47 s |
+| Simulateur bourse | messervices.etudiant.gouv.fr | 6 | 5 | **83 %** | 3 min 29 s |
+| Simulateurs APL et prime d'activité | caf.fr | 20 | 14 | **70 %** | 2 min 05 s |
+| **Total** | | **60** | **53** | **88 %** | |
+
+**Réussi** veut dire que l'agent a obtenu le résultat du simulateur (un montant, ou « pas de bourse ») puis s'est arrêté avant l'envoi, comme prévu.
+
+**Cas d'échec observés (7) :**
+- **caf.fr, questions hors profil (5)** : le simulateur pose une question à laquelle le dossier ne répond pas encore (code postal, salaires des 12 derniers mois, type de location) et l'agent dépasse son temps maximum. Piste : ajouter ces questions au questionnaire de Passerelle.
+- **caf.fr en maintenance (1)** : l'agent a reconnu la page de maintenance et l'a signalé. L'interface prévient maintenant l'étudiant quand un site est en maintenance.
+- **Erreur interne de la session H (1)** sur etudiant.gouv.fr, au bout de 14 minutes.
+
+Deux passages de test manuels (durée enregistrée négative) sont exclus. Les crédits H consommés ne sont pas encore enregistrés passage par passage : le coût de run du [business model](#business-model) est une estimation (environ 0,0035 € par étape).
 
 ## Stack
 
