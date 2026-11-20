@@ -1,17 +1,17 @@
 'use client'
 
 import { Download, FileText } from 'lucide-react'
-import { DOCUMENTS_PRETS, type DocumentPret } from '@/lib/validation-documents'
+import { DOCUMENTS_PRETS, documentPdf, type DocumentPret } from '@/lib/validation-documents'
 import { useProfilCourant, type ProfilCourant } from '@/lib/profil-courant'
 
 function telecharger(document: DocumentPret, profil: ProfilCourant) {
-  const blob = new Blob([document.contenu(profil)], { type: 'text/plain;charset=utf-8' })
+  const blob = new Blob([documentPdf(document, profil) as BlobPart], { type: 'application/pdf' })
   const url = URL.createObjectURL(blob)
   const lien = window.document.createElement('a')
   lien.href = url
   lien.download = document.fichier
   lien.click()
-  URL.revokeObjectURL(url)
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 export function SectionDocuments() {
