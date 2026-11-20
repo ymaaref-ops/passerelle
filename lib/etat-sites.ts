@@ -41,6 +41,18 @@ export async function lireEtatSites(): Promise<EtatSite[]> {
   return j.sites ?? []
 }
 
+/** Demande une nouvelle vérification (refusée par le serveur si la dernière date de moins de 5 min). */
+export async function reverifierSites(): Promise<EtatSite[]> {
+  const r = await fetch(URL_SITES, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'verifier' }),
+  })
+  if (!r.ok) throw new Error(`sites ${r.status}`)
+  const j = (await r.json()) as { sites?: EtatSite[] }
+  return j.sites ?? []
+}
+
 /** Sites qui posent problème (maintenance ou panne), éventuellement limités à une liste. */
 export function sitesEnProbleme(sites: EtatSite[], seulement?: string[]): EtatSite[] {
   return sites.filter(
