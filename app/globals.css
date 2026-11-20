@@ -237,6 +237,13 @@
     background-attachment: fixed;
     font-size: 1rem;
     line-height: 1.6;
+    /* Une longue ligne sans espace (lien, adresse e-mail, numéro) passe à la ligne au lieu de sortir du cadre. */
+    overflow-wrap: anywhere;
+  }
+  /* Les nombres et montants gardent leurs chiffres ensemble. */
+  .tabular-nums,
+  [class*='whitespace-nowrap'] {
+    overflow-wrap: normal;
   }
 }
 
