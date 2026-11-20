@@ -207,7 +207,14 @@ export function CarteGeo({
             className="absolute z-20 w-64 -translate-x-1/2 overflow-hidden rounded-2xl bg-card shadow-2xl"
             style={{
               left: Math.min(Math.max(epingleChoisie.x, 136), largeur - 136),
-              top: epingleChoisie.y > 230 ? epingleChoisie.y - 48 - 200 : epingleChoisie.y + 8,
+              // Au-dessus de l'épingle s'il y a la place, sinon en dessous ; toujours entière dans la carte.
+              top: Math.max(
+                8,
+                Math.min(
+                  epingleChoisie.y - 40 - 210 >= 8 ? epingleChoisie.y - 40 - 210 : epingleChoisie.y + 8,
+                  HAUTEUR - 218,
+                ),
+              ),
             }}
           >
             <div className="relative h-24 bg-primary-soft">
