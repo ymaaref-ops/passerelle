@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Check, Copy, ExternalLink, Mail, X } from 'lucide-react'
 import { EMAIL_SUPPORT, lienSupport } from '@/lib/support'
 
@@ -28,7 +29,13 @@ export function ContactSupport({
     if (!ouvert) return
     const fermer = (e: KeyboardEvent) => e.key === 'Escape' && setOuvert(false)
     window.addEventListener('keydown', fermer)
-    return () => window.removeEventListener('keydown', fermer)
+    // La page derrière ne défile plus tant que la fenêtre est ouverte.
+    const avant = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', fermer)
+      document.body.style.overflow = avant
+    }
   }, [ouvert])
 
   async function copier() {
@@ -51,9 +58,11 @@ export function ContactSupport({
       <button type="button" onClick={() => setOuvert(true)} aria-label={ariaLabel} title={title} className={className}>
         {children}
       </button>
-      {ouvert && (
+      {/* Rendue directement dans <body> : centrée sur l'écran et au-dessus de tout, où que soit le bouton. */}
+      {ouvert &&
+        createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm"
           onClick={() => setOuvert(false)}
         >
           <div
@@ -61,7 +70,7 @@ export function ContactSupport({
             aria-modal="true"
             aria-labelledby="titre-contact"
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-3xl bg-background p-6 shadow-xl"
+            className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-2xl"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -104,8 +113,9 @@ export function ContactSupport({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </>
   )
 }
