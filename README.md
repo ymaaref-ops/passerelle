@@ -6,14 +6,15 @@ Projet de la **Team 1** pour le hackathon **« Build The Future » 2026** (Eugen
 
 **👉 Site en ligne : https://passerelle-drab.vercel.app**
 
-![Tableau de bord de l'étudiant connecté : suivi des 6 étapes du parcours](docs/captures/tableau-de-bord.png)
+### Aperçu de l'interface
 
-<details>
-<summary>Page d'accueil d'un visiteur non connecté</summary>
+**1. Page d'accueil**, ce qu'on voit en ouvrant le site sans être connecté :
 
 ![Page d'accueil de Passerelle pour un visiteur](docs/captures/accueil-ordinateur.png)
 
-</details>
+**2. Espace étudiant**, ce qui s'affiche une fois connecté à son compte (bouton **Se connecter** en haut à droite, ou **Démarrer ma session** pour créer un compte). Tout le parcours se passe ici : documents, aides, démarches, suivi des agents en direct, logement.
+
+![Espace de l'étudiant connecté : tableau de bord et suivi des 6 étapes du parcours](docs/captures/tableau-de-bord.png)
 
 ## Sommaire
 
