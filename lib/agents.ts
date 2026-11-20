@@ -1,4 +1,5 @@
 import { lireEtat, type DemarcheN8n } from '@/lib/n8n'
+import { texteMaintenance } from '@/lib/etat-sites'
 
 export type AgentId = 'apl' | 'prime-activite' | 'prets' | 'bourse' | 'visale' | 'mobili-jeune'
 
@@ -36,10 +37,25 @@ export interface AgentStatut {
   choisie?: boolean
   /** Agent arrêté avant la fin : `resultat` dit où il a bloqué. */
   interrompu?: boolean
+  /** L'agent s'est arrêté parce que le site était en maintenance. */
+  maintenance?: boolean
   /** Pour le détail de la démarche : dernière mise à jour, remarques du simulateur, envoi fait. */
   majLe?: string
   remarques?: string
   envoyee?: boolean
+}
+
+/** Aide cochée sur la page Choix → agent qui la traite. */
+export const AGENT_PAR_AIDE: Record<string, AgentId> = {
+  apl: 'apl',
+  'prime-activite': 'prime-activite',
+  'pret-lbp': 'prets',
+  'pret-sg': 'prets',
+  'pret-cic': 'prets',
+  'pret-etat': 'prets',
+  'bourse-crous': 'bourse',
+  visale: 'visale',
+  'mobili-jeune': 'mobili-jeune',
 }
 
 /** Les agents H branchés, avec la démarche n8n qu'ils traitent. */
@@ -187,6 +203,9 @@ function agentDepuisN8n(a: (typeof AGENTS)[number], d: DemarcheN8n | undefined, 
         progression: 100,
         resultat: d.resultat_agent?.etape_bloquante || 'Incomplet : on te guide pour finir',
         interrompu: true,
+        maintenance:
+          Boolean((d.resultat_agent as Record<string, unknown> | null)?.maintenance) ||
+          texteMaintenance(d.resultat_agent?.etape_bloquante),
         lienDirect,
       }
   }

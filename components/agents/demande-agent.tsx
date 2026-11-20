@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Loader2, Play, Send } from 'lucide-react'
+import { texteMaintenance } from '@/lib/etat-sites'
 import { lancerDemande, lireDemande, repondreDemande, type EtatDemande } from '@/lib/demandes'
 import { adresseFenetre, ouvrirFenetre } from '@/lib/fenetre'
 import { getEtudiantId } from '@/lib/n8n'
@@ -121,9 +122,15 @@ export function DemandeAgent({ aide }: { aide: 'visale' | 'mobili_jeune' }) {
     fiche !== null && (Array.isArray(fiche.reponses_formulaire) || Array.isArray(fiche.etapes_etudiant))
   const { action, etape } = lireMessage(etat?.message ?? null)
   const fini = etat ? TERMINAUX.includes(etat.statut) : false
+  const enMaintenance = texteMaintenance(etat?.message)
 
   return (
     <div className="flex flex-col gap-3">
+      {enMaintenance && (
+        <p className="rounded-2xl bg-step-orange-soft p-3 text-sm font-semibold text-foreground">
+          Le site officiel était en maintenance : l&apos;agent s&apos;est arrêté. Relance-le quand le site sera revenu.
+        </p>
+      )}
       {!sessionId && (
         <>
           <p className="text-base text-foreground">

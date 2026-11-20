@@ -11,7 +11,9 @@ import {
   estUnPret,
 } from '@/lib/choix'
 import { enregistrerQuestionnaireCompte, sessionCourante } from '@/lib/compte'
-import { enregistrerAidesChoisies } from '@/lib/agents'
+import { AGENT_PAR_AIDE, enregistrerAidesChoisies } from '@/lib/agents'
+import { AlerteSites } from '@/components/alerte-sites'
+import { SITES_PAR_AGENT } from '@/lib/etat-sites'
 import { lancerDemarches } from '@/lib/n8n'
 import {
   CONTEXTE_VIDE,
@@ -209,6 +211,11 @@ export function ChoixForm({ droit: droitInitial, peutEtre: peutEtreInitial, cont
           ))}
         </section>
       )}
+
+      <AlerteSites
+        seulement={[...new Set(choisies.flatMap((id) => SITES_PAR_AGENT[AGENT_PAR_AIDE[id]] ?? []))]}
+        consequence="Tu peux lancer quand même : l'agent de ce site risque de s'arrêter, et tu pourras le relancer plus tard."
+      />
 
       <RecapAgents recap={recap} />
 

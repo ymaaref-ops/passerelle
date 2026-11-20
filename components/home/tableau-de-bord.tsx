@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Check, CircleAlert, FileText, FileUp, Loader2, Trophy } from 'lucide-react'
 import { StatutBadge } from '@/components/agents/statut-badge'
+import { AlerteSites } from '@/components/alerte-sites'
 import { ETAPES, Parcours } from '@/components/progress-steps'
 import { getStatutsAgents, type AgentStatut } from '@/lib/agents'
 import { lireMonCompte, sessionCourante, type MonCompte } from '@/lib/compte'
@@ -207,6 +208,8 @@ export function TableauDeBord() {
       </section>
 
       <Parcours indexCourant={index} liens />
+
+      <AlerteSites />
 
       {!donnees ? (
         <p className="flex items-center gap-2 text-muted-foreground">

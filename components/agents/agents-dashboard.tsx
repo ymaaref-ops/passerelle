@@ -7,7 +7,9 @@ import { useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { ArrowRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { envoyerReponseAgent, getStatutsAgents, lireAidesChoisies, statutsInitiaux, type AgentId } from '@/lib/agents'
+import { AGENT_PAR_AIDE, envoyerReponseAgent, getStatutsAgents, lireAidesChoisies, statutsInitiaux, type AgentId } from '@/lib/agents'
+import { AlerteSites } from '@/components/alerte-sites'
+import { SITES_PAR_AGENT } from '@/lib/etat-sites'
 import { STEP_COLORS } from '@/lib/step-colors'
 import { cn } from '@/lib/utils'
 import { BarreMarcheur } from '@/components/barre-marcheur'
@@ -17,18 +19,6 @@ import { NotificationAgents } from './notification-agents'
 
 const COULEUR = STEP_COLORS.green
 
-// Aide cochée sur la page Choix → agent affiché ici.
-const AGENT_PAR_AIDE: Record<string, AgentId> = {
-  apl: 'apl',
-  'prime-activite': 'prime-activite',
-  'pret-lbp': 'prets',
-  'pret-sg': 'prets',
-  'pret-cic': 'prets',
-  'pret-etat': 'prets',
-  'bourse-crous': 'bourse',
-  visale: 'visale',
-  'mobili-jeune': 'mobili-jeune',
-}
 
 export function AgentsDashboard() {
   // On n'affiche que les agents des aides cochées par l'étudiant : celles de l'adresse (?aides=…),
@@ -132,6 +122,11 @@ export function AgentsDashboard() {
           />
         </div>
       </header>
+
+      <AlerteSites
+        seulement={[...new Set(agents.flatMap((a) => SITES_PAR_AGENT[a.id] ?? []))]}
+        consequence="Les agents de ces sites risquent de s'arrêter. Relance-les depuis « Mes démarches » quand le site sera revenu."
+      />
 
       {!toutTermine && !seulementBientot && total > 0 && <JeuAttente />}
 

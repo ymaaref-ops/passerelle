@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { AlertTriangle, ArrowLeft, ChevronDown, ExternalLink, Home, Loader2, MapPin, Search, Send } from 'lucide-react'
 import { ChargementEtudiant } from '@/components/chargement-etudiant'
 import { MorpionEtudes } from '@/components/morpion-etudes'
+import { AlerteSites } from '@/components/alerte-sites'
+import { SITES_LOGEMENT, texteMaintenance } from '@/lib/etat-sites'
 import { CarteGeo } from './carte-geo'
 import { buttonVariants } from '@/components/ui/button'
 import {
@@ -338,6 +340,11 @@ export function RechercheLogement() {
 
   return (
     <div className="flex flex-col gap-6">
+      <AlerteSites
+        seulement={SITES_LOGEMENT}
+        consequence="La recherche peut quand même marcher : l'agent passe aux autres sites, mais l'aide CAF ne pourra peut-être pas être estimée."
+      />
+
       <section className="flex flex-col gap-5 rounded-3xl bg-card p-5 shadow-carte sm:p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5">
@@ -437,7 +444,16 @@ export function RechercheLogement() {
           {enAttenteDeToi && (
             <div className="flex flex-col gap-3 rounded-3xl border-2 border-step-orange bg-step-orange-soft p-5">
               <p className="font-bold text-foreground">L&apos;agent a besoin de toi</p>
-              {texte && <p className="whitespace-pre-line text-foreground">{texte}</p>}
+              {texteMaintenance(texte) && (
+                <p className="rounded-2xl bg-step-orange-soft p-3 text-sm font-semibold text-foreground">
+                  Un site était en maintenance pendant la recherche : relance-la plus tard pour des résultats complets.
+                </p>
+              )}
+              {texte && (
+                <p className="whitespace-pre-line text-foreground">
+                  {texte.replace(/SITE_EN_MAINTENANCE:?/gi, 'Site en maintenance :')}
+                </p>
+              )}
               <div className="flex flex-col gap-2 sm:flex-row">
                 <input
                   value={reponse}

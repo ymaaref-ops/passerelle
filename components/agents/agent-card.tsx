@@ -1,8 +1,11 @@
 'use client'
 
-import { BriefcaseBusiness, CircleAlert, CircleCheck, Globe, Home, KeyRound, Landmark, ShieldCheck, GraduationCap, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
+import { BriefcaseBusiness, CircleAlert, Construction, CircleCheck, Globe, Home, KeyRound, Landmark, ShieldCheck, GraduationCap, ExternalLink } from 'lucide-react'
 import type { AgentId, AgentStatut } from '@/lib/agents'
 import { cn } from '@/lib/utils'
+import { useSitesEnProbleme } from '@/components/alerte-sites'
+import { SITES_PAR_AGENT } from '@/lib/etat-sites'
 import { BarreMarcheur } from '@/components/barre-marcheur'
 import { DemandeAgent } from './demande-agent'
 import { DetailDemarche } from './detail-demarche'
@@ -30,6 +33,8 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
     ? { ...STYLES_STATUT.termine, barre: 'bg-step-orange', carte: 'border-step-orange-border bg-step-orange-soft' }
     : STYLES_STATUT[agent.statut]
   const idTitre = `titre-${agent.id}`
+  // Site de l'agent en maintenance en ce moment (vérifié toutes les 15 min).
+  const sitesEnPanne = useSitesEnProbleme(SITES_PAR_AGENT[agent.id])
 
   return (
     <article
@@ -62,8 +67,12 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
         </div>
         {agent.interrompu ? (
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-step-orange-border bg-card px-3 py-1 text-sm font-semibold text-step-orange">
-            <CircleAlert className="size-4" aria-hidden="true" />
-            À finir
+            {agent.maintenance ? (
+              <Construction className="size-4" aria-hidden="true" />
+            ) : (
+              <CircleAlert className="size-4" aria-hidden="true" />
+            )}
+            {agent.maintenance ? 'Site en maintenance' : 'À finir'}
           </span>
         ) : (
           <StatutBadge statut={agent.statut} />
@@ -77,7 +86,22 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
       <div className="flex min-h-20 flex-col justify-center gap-2">
         {agent.statut === 'besoin' && <FormulaireAgent key={agent.id} agent={agent} onEnvoyer={onEnvoyer} />}
 
-        {agent.statut === 'termine' && agent.interrompu && (
+        {agent.statut === 'termine' && agent.interrompu && agent.maintenance && (
+          <>
+            <p className="flex items-center gap-2 text-sm font-semibold text-step-orange">
+              <Construction className="size-4" aria-hidden="true" />
+              {agent.site} était en maintenance
+            </p>
+            <p className="text-base leading-snug text-foreground">
+              L&apos;agent n&apos;a pas pu finir. Réessaie quand le site sera revenu.
+            </p>
+            <Link href="/choix" className="text-sm font-semibold text-step-blue hover:underline">
+              Relancer depuis « Mes démarches »
+            </Link>
+          </>
+        )}
+
+        {agent.statut === 'termine' && agent.interrompu && !agent.maintenance && (
           <>
             <p className="flex items-center gap-2 text-sm font-semibold text-step-orange">
               <CircleAlert className="size-4" aria-hidden="true" />
@@ -135,6 +159,14 @@ export function AgentCard({ agent, onEnvoyer }: AgentCardProps) {
           <ExternalLink className="size-4" aria-hidden="true" />
           Ouvrir l&apos;agent (pas à pas)
         </button>
+      )}
+
+      {sitesEnPanne.length > 0 && (agent.statut === 'en_cours' || agent.statut === 'attente') && (
+        <p className="flex items-start gap-2 rounded-2xl bg-step-orange-soft p-3 text-sm text-foreground">
+          <Construction className="mt-0.5 size-4 shrink-0 text-step-orange" aria-hidden="true" />
+          {sitesEnPanne.map((s) => s.nom).join(', ')} {sitesEnPanne.length > 1 ? 'sont' : 'est'} en maintenance en ce
+          moment : l&apos;agent risque de s&apos;arrêter.
+        </p>
       )}
 
       <DetailDemarche agent={agent} />

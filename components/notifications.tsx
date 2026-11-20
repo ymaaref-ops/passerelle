@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Bell, CircleAlert, CircleCheck, FileText, Send, type LucideIcon } from 'lucide-react'
+import { Bell, CircleAlert, CircleCheck, Construction, FileText, Send, type LucideIcon } from 'lucide-react'
 import { useSession } from '@/components/compte/menu-compte'
 import { getStatutsAgents, type AgentStatut } from '@/lib/agents'
 import { lireMonCompte, type MonCompte } from '@/lib/compte'
 import { cn } from '@/lib/utils'
+import { lireEtatSites, sitesEnProbleme, type EtatSite } from '@/lib/etat-sites'
 
 interface Notification {
   /** Change quand l'état change : une nouvelle étape refait apparaître la pastille. */
@@ -21,8 +22,20 @@ interface Notification {
 
 const INTERVALLE = 30_000
 
-function construire(compte: MonCompte | null, agents: AgentStatut[]): Notification[] {
+function construire(compte: MonCompte | null, agents: AgentStatut[], sites: EtatSite[] = []): Notification[] {
   const liste: Notification[] = []
+
+  for (const site of sitesEnProbleme(sites)) {
+    liste.push({
+      id: `site-${site.site}-${site.statut}-${site.depuis ?? ''}`,
+      titre: `${site.nom} ${site.statut === 'indisponible' ? 'ne répond pas' : 'est en maintenance'}`,
+      texte: "Les agents qui l'utilisent risquent de s'arrêter : relance-les quand il sera revenu.",
+      href: '/agents',
+      date: site.depuis ?? undefined,
+      type: 'alerte',
+      Icone: Construction,
+    })
+  }
 
   const documents = compte?.documents ?? []
   if (documents.length) {
@@ -66,7 +79,7 @@ function construire(compte: MonCompte | null, agents: AgentStatut[]): Notificati
     } else if (a.statut === 'termine' && a.interrompu) {
       liste.push({
         id: `${a.id}-interrompu-${a.majLe ?? ''}`,
-        titre: `${a.nom} : à finir`,
+        titre: a.maintenance ? `${a.nom} : site en maintenance` : `${a.nom} : à finir`,
         texte: `L'agent s'est arrêté à : ${a.resultat ?? ''}`,
         href: '/agents',
         date: a.majLe,
@@ -136,11 +149,12 @@ export function Notifications() {
 
   const charger = useCallback(async () => {
     if (!session) return
-    const [compte, agents] = await Promise.all([
+    const [compte, agents, sites] = await Promise.all([
       lireMonCompte().catch(() => null),
       getStatutsAgents().catch(() => [] as AgentStatut[]),
+      lireEtatSites().catch(() => [] as EtatSite[]),
     ])
-    setListe(construire(compte, agents))
+    setListe(construire(compte, agents, sites))
   }, [session])
 
   useEffect(() => {
