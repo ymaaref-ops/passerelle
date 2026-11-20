@@ -220,14 +220,23 @@ alter table public.passages_agents add constraint passages_agents_etudiant_id_fk
 
 -- Vue, fonctions et déclencheurs
 create or replace view public.mesures_agents as
+-- Un passage est réussi s'il est terminé, ou si l'agent a obtenu le résultat du simulateur
+-- puis s'est arrêté volontairement avant l'envoi (« Simulation faite », « Pas de bourse »).
+-- Les passages de test (durée négative) sont exclus.
+ WITH p AS (
+         SELECT passages_agents.*,
+            ((statut = 'completed'::text) OR (COALESCE(erreur, etape_bloquante, ''::text) ~~* 'Simulation faite%'::text) OR (COALESCE(erreur, etape_bloquante, ''::text) ~~* 'Pas de bourse%'::text)) AS reussi
+           FROM passages_agents
+          WHERE ((duree_s IS NULL) OR (duree_s >= (0)::numeric))
+        )
  SELECT site,
     count(*) AS essais,
-    count(*) FILTER (WHERE (statut = 'completed'::text)) AS reussis,
-    round(((100.0 * (count(*) FILTER (WHERE (statut = 'completed'::text)))::numeric) / (count(*))::numeric), 1) AS taux_reussite_pct,
-    round(avg(duree_s), 1) AS duree_moyenne_s,
+    count(*) FILTER (WHERE reussi) AS reussis,
+    round(((100.0 * ((count(*) FILTER (WHERE reussi)))::numeric) / (count(*))::numeric), 1) AS taux_reussite_pct,
+    round(avg(duree_s) FILTER (WHERE reussi), 1) AS duree_moyenne_s,
     round(avg(credits), 4) AS credits_moyens,
     count(*) FILTER (WHERE ((montant_lu IS NOT NULL) AND (montant_attendu IS NOT NULL) AND (abs((montant_lu - montant_attendu)) <= (1)::numeric))) AS montants_justes
-   FROM passages_agents
+   FROM p
   GROUP BY site;
 
 CREATE OR REPLACE FUNCTION public.demander_matching_h()
