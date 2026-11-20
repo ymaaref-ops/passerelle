@@ -77,7 +77,7 @@ flowchart LR
 | Site | Interface, comptes, parcours | `app/`, `components/`, `lib/` |
 | n8n | Dépôt et lecture des documents, lancement des agents, retour des résultats, e-mail | [`n8n/`](n8n/README.md) |
 | Supabase | Base de données, authentification, Edge Functions | [`supabase/`](supabase/README.md) |
-| Hugging Face | Lecture des documents (vision) et contrôle croisé | workflow n8n 1 |
+| Hugging Face | Lecture des documents (vision) et contrôle croisé | workflow n8n 1 · Évaluation des modèles : [`ia/`](ia/README.md) |
 | H Company | Agents qui remplissent les simulateurs et les formulaires | voir ci-dessous |
 
 ### Agents H
@@ -92,6 +92,8 @@ flowchart LR
 | `demande-visale`, `demande-mobili-jeune` | Préparent une fiche pour faire la demande soi-même | Edge Function `demande-h` |
 | `passerelle-logement` | Recherche d'annonces de logement | Edge Function `logement-h` |
 | `passerelle-matching` | Matching des aides à partir du dossier | Edge Function `matching-h` |
+
+**Configuration complète : [`agents/`](agents/README.md)** (instructions, format de réponse, environnement et tâche de test de chaque agent).
 
 Les agents ne valident et n'envoient jamais une demande : ils s'arrêtent avant le dernier bouton, et c'est l'étudiant qui valide sur le site officiel.
 
@@ -162,6 +164,8 @@ lib/          Logique : appels n8n et Supabase, comptes, questionnaire, document
 public/       Icônes, logo et documents-test/ (documents fictifs pour essayer le parcours)
 n8n/          Exports des workflows n8n
 supabase/     Structure de la base, catalogue des aides et Edge Functions
+agents/       Configuration complète de chaque agent H Company
+ia/           Prompts de lecture des documents et évaluation des modèles Hugging Face
 docs/         Business model, consignes du hackathon, audit qualité, captures d'écran
 ```
 

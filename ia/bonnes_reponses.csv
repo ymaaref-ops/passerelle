@@ -1,0 +1,159 @@
+etudiant,fichier,champ,bonne_reponse
+Lucas-Martin,01_Piece-identite.png,_photo_complete,true
+Lucas-Martin,01_Piece-identite.png,nom,MARTIN
+Lucas-Martin,01_Piece-identite.png,prenom,Lucas
+Lucas-Martin,01_Piece-identite.png,sexe,M
+Lucas-Martin,01_Piece-identite.png,nationalite,Française
+Lucas-Martin,01_Piece-identite.png,date_naissance,12/03/2006
+Lucas-Martin,01_Piece-identite.png,lieu_naissance,Clermont-Ferrand
+Lucas-Martin,01_Piece-identite.png,numero_document,SPEC-FR-482913
+Lucas-Martin,01_Piece-identite.png,date_expiration,11/02/2034
+Lucas-Martin,02_Bail.png,_photo_complete,true
+Lucas-Martin,02_Bail.png,locataires,Lucas MARTIN
+Lucas-Martin,02_Bail.png,adresse_logement,"14 rue des Tisserands, 69001 Lyon"
+Lucas-Martin,02_Bail.png,bailleur,SCI Les Pentes Fictives
+Lucas-Martin,02_Bail.png,meuble,true
+Lucas-Martin,02_Bail.png,colocation,false
+Lucas-Martin,02_Bail.png,surface_m2,21
+Lucas-Martin,02_Bail.png,loyer_hors_charges,520
+Lucas-Martin,02_Bail.png,charges,40
+Lucas-Martin,02_Bail.png,date_entree,01/09/2026
+Lucas-Martin,03_Certificat-scolarite.png,etablissement,Université Fictive de Lyon-Fourvière
+Lucas-Martin,03_Certificat-scolarite.png,nom,MARTIN
+Lucas-Martin,03_Certificat-scolarite.png,prenom,Lucas
+Lucas-Martin,03_Certificat-scolarite.png,date_naissance,12/03/2006
+Lucas-Martin,03_Certificat-scolarite.png,formation,Licence 3 Économie
+Lucas-Martin,03_Certificat-scolarite.png,annee_universitaire,2026-2027
+Lucas-Martin,03_Certificat-scolarite.png,date_document,05/09/2026
+Lucas-Martin,04_Avis-imposition-parents.png,_photo_complete,false
+Lucas-Martin,04_Avis-imposition-parents.png,declarants,Philippe MARTIN et Nathalie MARTIN
+Lucas-Martin,04_Avis-imposition-parents.png,adresse,null
+Lucas-Martin,04_Avis-imposition-parents.png,annee_revenus,2022
+Lucas-Martin,04_Avis-imposition-parents.png,annee_avis,2023
+Lucas-Martin,04_Avis-imposition-parents.png,nombre_parts,3
+Lucas-Martin,04_Avis-imposition-parents.png,revenu_brut_global,30500
+Lucas-Martin,04_Avis-imposition-parents.png,revenu_fiscal_reference,28000
+Lucas-Martin,04_Avis-imposition-parents.png,impot_net,1240
+Lucas-Martin,05_Fiche-paie-juillet-2026.png,_photo_complete,true
+Lucas-Martin,05_Fiche-paie-juillet-2026.png,salarie,Lucas MARTIN
+Lucas-Martin,05_Fiche-paie-juillet-2026.png,employeur,Supermarché Fictif des Halles SARL
+Lucas-Martin,05_Fiche-paie-juillet-2026.png,periode,07/2026
+Lucas-Martin,05_Fiche-paie-juillet-2026.png,salaire_brut,1801.80
+Lucas-Martin,05_Fiche-paie-juillet-2026.png,montant_net_social,null
+Lucas-Martin,05_Fiche-paie-juillet-2026.png,net_a_payer,1410
+Lucas-Martin,06_Quittance-loyer-octobre-2026.png,locataire,Lucas MARTIN
+Lucas-Martin,06_Quittance-loyer-octobre-2026.png,bailleur,SCI Les Pentes Fictives
+Lucas-Martin,06_Quittance-loyer-octobre-2026.png,adresse_logement,"16 rue des Tisserands, 69001 Lyon"
+Lucas-Martin,06_Quittance-loyer-octobre-2026.png,periode,10/2026
+Lucas-Martin,06_Quittance-loyer-octobre-2026.png,loyer_hors_charges,520
+Lucas-Martin,06_Quittance-loyer-octobre-2026.png,charges,40
+Lucas-Martin,06_Quittance-loyer-octobre-2026.png,total_paye,560
+Lucas-Martin,06_Quittance-loyer-octobre-2026.png,date_document,31/10/2026
+Camille-Durand,01_Piece-identite.png,_photo_complete,true
+Camille-Durand,01_Piece-identite.png,nom,DURAND
+Camille-Durand,01_Piece-identite.png,prenom,Camille
+Camille-Durand,01_Piece-identite.png,sexe,F
+Camille-Durand,01_Piece-identite.png,nationalite,Française
+Camille-Durand,01_Piece-identite.png,date_naissance,22/06/2005
+Camille-Durand,01_Piece-identite.png,lieu_naissance,Angers
+Camille-Durand,01_Piece-identite.png,numero_document,SPEC-FR-109384
+Camille-Durand,01_Piece-identite.png,date_expiration,21/05/2033
+Camille-Durand,02_Bail-residence-etudiante.png,_photo_complete,false
+Camille-Durand,02_Bail-residence-etudiante.png,locataires,Camille DURAND
+Camille-Durand,02_Bail-residence-etudiante.png,adresse_logement,null
+Camille-Durand,02_Bail-residence-etudiante.png,bailleur,null
+Camille-Durand,02_Bail-residence-etudiante.png,loyer_hors_charges,360
+Camille-Durand,02_Bail-residence-etudiante.png,charges,50
+Camille-Durand,02_Bail-residence-etudiante.png,date_entree,01/09/2026
+Camille-Durand,03_Certificat-scolarite.png,etablissement,IUT Fictif de Nantes
+Camille-Durand,03_Certificat-scolarite.png,nom,DURAND
+Camille-Durand,03_Certificat-scolarite.png,prenom,Camille
+Camille-Durand,03_Certificat-scolarite.png,date_naissance,22/06/2005
+Camille-Durand,03_Certificat-scolarite.png,formation,"BUT 2 Informatique, en alternance"
+Camille-Durand,03_Certificat-scolarite.png,annee_universitaire,2024-2025
+Camille-Durand,03_Certificat-scolarite.png,date_document,02/09/2024
+Camille-Durand,04_Avis-imposition-parent.png,_photo_complete,true
+Camille-Durand,04_Avis-imposition-parent.png,declarants,Sylvie DURAND
+Camille-Durand,04_Avis-imposition-parent.png,adresse,"8 rue des Fictifs, 49000 Angers"
+Camille-Durand,04_Avis-imposition-parent.png,annee_revenus,2024
+Camille-Durand,04_Avis-imposition-parent.png,annee_avis,2025
+Camille-Durand,04_Avis-imposition-parent.png,nombre_parts,2
+Camille-Durand,04_Avis-imposition-parent.png,revenu_brut_global,23800
+Camille-Durand,04_Avis-imposition-parent.png,revenu_fiscal_reference,22000
+Camille-Durand,04_Avis-imposition-parent.png,impot_net,310
+Camille-Durand,05_Fiche-paie-aout-2026.png,_photo_complete,true
+Camille-Durand,05_Fiche-paie-aout-2026.png,salarie,Camille DURAND
+Camille-Durand,05_Fiche-paie-aout-2026.png,employeur,NantesSoft Fictive SAS
+Camille-Durand,05_Fiche-paie-aout-2026.png,periode,08/2026
+Camille-Durand,05_Fiche-paie-aout-2026.png,salaire_brut,1250
+Camille-Durand,05_Fiche-paie-aout-2026.png,montant_net_social,null
+Camille-Durand,05_Fiche-paie-aout-2026.png,net_a_payer,1000
+Camille-Durand,06_Fiche-paie-septembre-2026.png,_photo_complete,true
+Camille-Durand,06_Fiche-paie-septembre-2026.png,salarie,Camille DURAND
+Camille-Durand,06_Fiche-paie-septembre-2026.png,employeur,NantesSoft Fictive SAS
+Camille-Durand,06_Fiche-paie-septembre-2026.png,periode,09/2026
+Camille-Durand,06_Fiche-paie-septembre-2026.png,salaire_brut,1250
+Camille-Durand,06_Fiche-paie-septembre-2026.png,montant_net_social,null
+Camille-Durand,06_Fiche-paie-septembre-2026.png,net_a_payer,1000
+Camille-Durand,07_Fiche-paie-octobre-2026.png,_photo_complete,true
+Camille-Durand,07_Fiche-paie-octobre-2026.png,salarie,Camille DURAND
+Camille-Durand,07_Fiche-paie-octobre-2026.png,employeur,NantesSoft Fictive SAS
+Camille-Durand,07_Fiche-paie-octobre-2026.png,periode,10/2026
+Camille-Durand,07_Fiche-paie-octobre-2026.png,salaire_brut,1250
+Camille-Durand,07_Fiche-paie-octobre-2026.png,montant_net_social,null
+Camille-Durand,07_Fiche-paie-octobre-2026.png,net_a_payer,1350
+Camille-Durand,08_Quittance-loyer-octobre-2026.png,_photo_complete,false
+Camille-Durand,08_Quittance-loyer-octobre-2026.png,locataire,Camille DURAND
+Camille-Durand,08_Quittance-loyer-octobre-2026.png,adresse_logement,null
+Camille-Durand,08_Quittance-loyer-octobre-2026.png,periode,10/2026
+Camille-Durand,08_Quittance-loyer-octobre-2026.png,loyer_hors_charges,360
+Camille-Durand,08_Quittance-loyer-octobre-2026.png,charges,50
+Camille-Durand,08_Quittance-loyer-octobre-2026.png,total_paye,410
+Camille-Durand,08_Quittance-loyer-octobre-2026.png,date_document,31/10/2026
+Sofia-Rossi,01_Piece-identite.png,_photo_complete,true
+Sofia-Rossi,01_Piece-identite.png,nom,ROSSI
+Sofia-Rossi,01_Piece-identite.png,prenom,Sofia
+Sofia-Rossi,01_Piece-identite.png,sexe,F
+Sofia-Rossi,01_Piece-identite.png,nationalite,Italienne
+Sofia-Rossi,01_Piece-identite.png,date_naissance,05/11/2003
+Sofia-Rossi,01_Piece-identite.png,lieu_naissance,Turin (Italie)
+Sofia-Rossi,01_Piece-identite.png,numero_document,SPEC-IT-774102
+Sofia-Rossi,01_Piece-identite.png,date_expiration,04/11/2031
+Sofia-Rossi,02_Bail.png,_photo_complete,true
+Sofia-Rossi,02_Bail.png,locataires,Sofia RUSSO
+Sofia-Rossi,02_Bail.png,adresse_logement,"22 rue des Fictifs, 75011 Paris"
+Sofia-Rossi,02_Bail.png,bailleur,M. Jean DUPONT (personne fictive)
+Sofia-Rossi,02_Bail.png,meuble,false
+Sofia-Rossi,02_Bail.png,colocation,false
+Sofia-Rossi,02_Bail.png,surface_m2,19
+Sofia-Rossi,02_Bail.png,loyer_hors_charges,780
+Sofia-Rossi,02_Bail.png,charges,60
+Sofia-Rossi,02_Bail.png,date_entree,15/09/2026
+Sofia-Rossi,03_Certificat-scolarite.png,etablissement,École Fictive de Commerce de Paris
+Sofia-Rossi,03_Certificat-scolarite.png,nom,ROSSI
+Sofia-Rossi,03_Certificat-scolarite.png,prenom,Sofia
+Sofia-Rossi,03_Certificat-scolarite.png,date_naissance,05/11/2003
+Sofia-Rossi,03_Certificat-scolarite.png,formation,Master 1 Finance
+Sofia-Rossi,03_Certificat-scolarite.png,annee_universitaire,2026-2027
+Sofia-Rossi,03_Certificat-scolarite.png,date_document,10/09/2026
+Sofia-Rossi,04_Fiche-paie-septembre-2026.png,_photo_complete,true
+Sofia-Rossi,04_Fiche-paie-septembre-2026.png,salarie,Sofia ROSSI
+Sofia-Rossi,04_Fiche-paie-septembre-2026.png,employeur,Café Fictif de la Bastille SARL
+Sofia-Rossi,04_Fiche-paie-septembre-2026.png,periode,09/2026
+Sofia-Rossi,04_Fiche-paie-septembre-2026.png,salaire_brut,900
+Sofia-Rossi,04_Fiche-paie-septembre-2026.png,montant_net_social,null
+Sofia-Rossi,04_Fiche-paie-septembre-2026.png,net_a_payer,702
+Sofia-Rossi,05_Fiche-paie-octobre-2026.png,_photo_complete,true
+Sofia-Rossi,05_Fiche-paie-octobre-2026.png,salarie,Sofia ROSSI
+Sofia-Rossi,05_Fiche-paie-octobre-2026.png,employeur,Café Fictif de la Bastille SARL
+Sofia-Rossi,05_Fiche-paie-octobre-2026.png,periode,10/2026
+Sofia-Rossi,05_Fiche-paie-octobre-2026.png,salaire_brut,960
+Sofia-Rossi,05_Fiche-paie-octobre-2026.png,montant_net_social,null
+Sofia-Rossi,05_Fiche-paie-octobre-2026.png,net_a_payer,748.80
+Sofia-Rossi,06_Quittance-loyer-octobre-2026.png,locataire,Sofia ROSSI
+Sofia-Rossi,06_Quittance-loyer-octobre-2026.png,adresse_logement,"22 rue des Fictifs, 75011 Paris"
+Sofia-Rossi,06_Quittance-loyer-octobre-2026.png,periode,10/2026
+Sofia-Rossi,06_Quittance-loyer-octobre-2026.png,loyer_hors_charges,780
+Sofia-Rossi,06_Quittance-loyer-octobre-2026.png,charges,60
+Sofia-Rossi,06_Quittance-loyer-octobre-2026.png,total_paye,840
+Sofia-Rossi,06_Quittance-loyer-octobre-2026.png,date_document,31/10/2026

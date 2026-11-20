@@ -219,7 +219,7 @@
     },
     {
       "parameters": {
-        "fromEmail": "\"L'équipe Passerelle\" <fernandesema99@gmail.com>",
+        "fromEmail": "\"L'équipe Passerelle\" <contact@example.com>",
         "toEmail": "={{ $json.email }}",
         "subject": "Passerelle : ton dossier est prêt",
         "emailFormat": "text",
