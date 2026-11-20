@@ -106,7 +106,7 @@ function Residence() {
 
 function Maison() {
   return (
-    <svg viewBox="0 0 160 110" className="h-24 w-36 shrink-0" aria-hidden="true">
+    <svg viewBox="0 0 160 110" className="hidden h-24 w-36 shrink-0 @sm:block" aria-hidden="true">
       <ellipse cx="60" cy="70" rx="40" ry="30" fill="oklch(0.95 0.025 285)" />
       <ellipse cx="110" cy="62" rx="34" ry="28" fill="oklch(0.95 0.025 285)" />
       <polygon points="40,62 82,28 124,62" fill="oklch(0.3 0.13 275)" />
@@ -122,7 +122,7 @@ function Maison() {
 }
 
 function Carte({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <section className={cn('rounded-3xl bg-card p-6 shadow-carte sm:p-7', className)}>{children}</section>
+  return <section className={cn('@container min-w-0 rounded-3xl bg-card p-6 shadow-carte sm:p-7', className)}>{children}</section>
 }
 
 function LienCarte({ href, children }: { href: string; children: React.ReactNode }) {
@@ -217,21 +217,21 @@ export function TableauDeBord() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Aides estimées */}
           <Carte>
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
               <h2 className="text-xl font-bold text-foreground">Mes aides estimées</h2>
               <LienCarte href="/aides">Voir le détail</LienCarte>
             </div>
-            <div className="mt-3 flex items-end justify-between gap-4">
+            <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
               {apl !== null ? (
                 <div>
-                  <p className="text-5xl font-extrabold tracking-tight text-primary">
+                  <p className="text-4xl font-extrabold tracking-tight text-primary @md:text-5xl">
                     ≈ {Math.round(apl)} € <span className="text-2xl font-bold">/ mois</span>
                   </p>
                   <p className="mt-1 text-step-blue">pour ton logement (APL)</p>
                 </div>
               ) : nbEligibles > 0 ? (
                 <div>
-                  <p className="text-5xl font-extrabold tracking-tight text-primary">{nbEligibles}</p>
+                  <p className="text-4xl font-extrabold tracking-tight text-primary @md:text-5xl">{nbEligibles}</p>
                   <p className="mt-1 text-step-blue">aide{nbEligibles > 1 ? 's' : ''} à laquelle tu as droit</p>
                 </div>
               ) : (
@@ -282,7 +282,7 @@ export function TableauDeBord() {
 
           {/* Démarches en cours */}
           <Carte>
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
               <h2 className="text-xl font-bold text-foreground">Mes démarches en cours</h2>
               <LienCarte href="/agents">Voir toutes</LienCarte>
             </div>
@@ -321,15 +321,15 @@ export function TableauDeBord() {
           </Carte>
 
           {/* Activité récente */}
-          <Carte className="flex flex-col gap-5 sm:flex-row">
-            <div className="flex-1">
+          <Carte className="flex flex-col gap-5 @xl:flex-row">
+            <div className="min-w-0 flex-1">
               <h2 className="text-xl font-bold text-foreground">Mon activité récente</h2>
               {activite.length === 0 ? (
                 <p className="mt-4 text-muted-foreground">Rien pour l&apos;instant.</p>
               ) : (
                 <ol className="relative mt-4 flex flex-col gap-4 border-l-2 border-primary-soft pl-5">
                   {activite.slice(0, 4).map((e) => (
-                    <li key={`${e.date}-${e.texte}`} className="relative grid gap-0.5 sm:grid-cols-[9rem_1fr] sm:gap-3">
+                    <li key={`${e.date}-${e.texte}`} className="relative grid gap-0.5 @md:grid-cols-[8.5rem_1fr] @md:gap-3">
                       <span aria-hidden="true" className="absolute top-1.5 -left-[1.6rem] size-3 rounded-full bg-step-blue ring-4 ring-card" />
                       <span className="text-sm text-muted-foreground">{quand(e.date)}</span>
                       <span className="text-sm font-semibold text-foreground">{e.texte}</span>
@@ -338,7 +338,7 @@ export function TableauDeBord() {
                 </ol>
               )}
             </div>
-            <div className="flex shrink-0 flex-col items-center justify-center gap-2 rounded-3xl bg-primary-soft p-5 text-center sm:w-40">
+            <div className="flex shrink-0 flex-col items-center justify-center gap-2 rounded-3xl bg-primary-soft p-5 text-center @xl:w-40">
               <Trophy className="size-10 text-step-orange" aria-hidden="true" />
               <p className="font-bold leading-snug text-foreground">
                 {index >= 4 ? 'Tu es sur la bonne voie !' : `Étape ${Math.max(index, 0) + 1} sur ${ETAPES.length}`}
