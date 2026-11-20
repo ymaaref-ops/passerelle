@@ -4,7 +4,6 @@ import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  Bell,
   FileText,
   Gift,
   Home,
@@ -16,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { MenuCompte, useSession } from '@/components/compte/menu-compte'
+import { Notifications } from '@/components/notifications'
 import { SiteHeader } from '@/components/site-header'
 import { EMAIL_SUPPORT } from '@/lib/support'
 import { ContactSupport } from '@/components/contact-support'
@@ -190,13 +190,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 <Headset className="size-5" aria-hidden="true" />
               </ContactSupport>
-              <Link
-                href="/agents"
-                aria-label="Suivi de tes démarches"
-                className="flex size-11 items-center justify-center rounded-full text-foreground outline-none hover:bg-card/70 focus-visible:ring-4 focus-visible:ring-ring/30"
-              >
-                <Bell className="size-5" aria-hidden="true" />
-              </Link>
+              <Notifications />
               <MenuCompte />
             </div>
           </div>
