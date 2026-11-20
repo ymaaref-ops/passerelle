@@ -6,6 +6,8 @@ Projet de la **Team 1** pour le hackathon **« Build The Future » 2026** (Eugen
 
 **👉 Site en ligne : https://passerelle-drab.vercel.app**
 
+**🎬 Vidéo de démonstration : https://drive.google.com/drive/u/0/folders/1ot_6pTlMoQrsYkfGrN4SkDSGTOKmtEpe**
+
 ### Aperçu de l'interface
 
 **1. Page d'accueil**, ce qu'on voit en ouvrant le site sans être connecté :
