@@ -1,6 +1,6 @@
 import type { AgentId } from '@/lib/agents'
 
-// État des sites utilisés par les agents (fonction Supabase « sites », vérifiée toutes les 15 min).
+// État de la CAF et des banques utilisées (fonction Supabase « sites », vérifiée toutes les 15 min).
 
 const URL_SITES =
   (process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://hnziztstifpipxrgdnop.supabase.co') + '/functions/v1/sites'
@@ -17,18 +17,18 @@ export interface EtatSite {
   depuis: string | null
 }
 
-/** Sites dont dépend chaque agent. */
+/** Sites surveillés : seulement la CAF et les banques du comparateur de prêts. */
 export const SITES_PAR_AGENT: Record<AgentId, string[]> = {
   apl: ['caf'],
   'prime-activite': ['caf'],
-  bourse: ['crous'],
-  visale: ['visale'],
-  'mobili-jeune': ['action_logement'],
+  bourse: [],
+  visale: [],
+  'mobili-jeune': [],
   prets: ['labanquepostale', 'societegenerale', 'cic'],
 }
 
-/** Sites utilisés par la recherche de logement (annonces + simulateur CAF). */
-export const SITES_LOGEMENT = ['pap', 'caf']
+/** La recherche de logement utilise le simulateur de la CAF. */
+export const SITES_LOGEMENT = ['caf']
 
 export async function lireEtatSites(): Promise<EtatSite[]> {
   const r = await fetch(URL_SITES, {
