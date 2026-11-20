@@ -1,5 +1,5 @@
 import type { ProfilCourant } from '@/lib/profil-courant'
-import { creerPdf, type Bloc } from '@/lib/pdf-simple'
+import { creerPdf, type Bloc, type OptionsPdf } from '@/lib/pdf-simple'
 import { formaterEurosCentimes, formaterTaux } from '@/lib/validation'
 
 export interface DocumentPret {
@@ -9,11 +9,25 @@ export interface DocumentPret {
   fichier: string
   /** Contenu mis en page (blocs du PDF). */
   blocs: (p: ProfilCourant) => Bloc[]
+  style?: OptionsPdf['style']
 }
 
 /** Le document au format PDF, prêt à télécharger. */
 export function documentPdf(d: DocumentPret, p: ProfilCourant): Uint8Array {
-  return creerPdf(d.titre, d.blocs(p))
+  return creerPdf(d.titre, d.blocs(p), {
+    style: d.style ?? 'document',
+    beneficiaire: { nom: p.nomComplet, email: p.email },
+    reference: reference(d.id, p),
+    date: aujourdhui(),
+  })
+}
+
+/** Référence stable du document (même étudiant, même jour, même document → même référence). */
+function reference(id: string, p: ProfilCourant): string {
+  const jour = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  let h = 0
+  for (const c of `${id}|${p.email}|${jour}`) h = (h * 31 + c.charCodeAt(0)) >>> 0
+  return `PAS-${jour}-${h.toString(36).toUpperCase().slice(0, 5).padStart(5, '0')}`
 }
 
 const EN_ATTENTE: Bloc[] = [
@@ -69,7 +83,6 @@ function budgetMensuel(p: ProfilCourant): Bloc[] {
   const charges = loyer + mensualite
   return [
     { type: 'titre', texte: 'Budget mensuel' },
-    { type: 'note', texte: `${p.nomComplet} · établi le ${aujourdhui()}` },
     { type: 'sousTitre', texte: 'Revenus' },
     {
       type: 'lignes',
@@ -104,7 +117,6 @@ function planRemboursement(p: ProfilCourant): Bloc[] {
   const ecart = Math.abs(offre.mensualite - plan.mensualite) / plan.mensualite > 0.03
   const blocs: Bloc[] = [
     { type: 'titre', texte: `Plan de remboursement – ${offre.banque}` },
-    { type: 'note', texte: `${p.nomComplet} · établi le ${aujourdhui()}` },
     {
       type: 'resume',
       elements: [
@@ -170,8 +182,10 @@ function lettreBanquier(p: ProfilCourant): Bloc[] {
     { type: 'paragraphe', texte: p.nomComplet, gras: true },
     ...coordonnees,
     { type: 'espace', hauteur: 18 },
-    { type: 'paragraphe', texte: `À l'attention du conseiller ${offre.banque}` },
-    { type: 'paragraphe', texte: `Le ${aujourdhui()}` },
+    { type: 'paragraphe', texte: offre.banque, gras: true, droite: true },
+    { type: 'paragraphe', texte: "À l'attention de votre conseiller", droite: true },
+    { type: 'espace', hauteur: 10 },
+    { type: 'paragraphe', texte: `Le ${aujourdhui()}`, droite: true },
     { type: 'espace', hauteur: 14 },
     { type: 'paragraphe', texte: 'Objet : demande de prêt étudiant', gras: true },
     { type: 'espace' },
@@ -195,7 +209,7 @@ function lettreBanquier(p: ProfilCourant): Bloc[] {
 function checklistPieces(_p: ProfilCourant): Bloc[] {
   return [
     { type: 'titre', texte: 'Checklist des pièces du dossier' },
-    { type: 'note', texte: `Prêt étudiant · établie le ${aujourdhui()}` },
+    { type: 'note', texte: 'Pièces à fournir pour ta demande de prêt étudiant.' },
     { type: 'espace' },
     {
       type: 'cases',
@@ -234,6 +248,7 @@ export const DOCUMENTS_PRETS: DocumentPret[] = [
     description: 'Une lettre prête à joindre à ta demande, avec ta situation.',
     fichier: 'lettre-au-banquier.pdf',
     blocs: lettreBanquier,
+    style: 'lettre',
   },
   {
     id: 'checklist',

@@ -4,7 +4,7 @@
 export type Bloc =
   | { type: 'titre'; texte: string }
   | { type: 'sousTitre'; texte: string }
-  | { type: 'paragraphe'; texte: string; gras?: boolean }
+  | { type: 'paragraphe'; texte: string; gras?: boolean; droite?: boolean }
   | { type: 'note'; texte: string }
   | { type: 'lignes'; lignes: [string, string][] }
   | { type: 'total'; libelle: string; valeur: string; accent?: boolean }
@@ -18,7 +18,9 @@ const H = 841.89
 const MARGE = 50
 const UTILE = L - 2 * MARGE
 
-const NUIT: [number, number, number] = [0.118, 0.106, 0.42]
+// Couleurs du logo Passerelle (pont) : bleu nuit #18205e et vert #5ee5a0.
+const NUIT: [number, number, number] = [0.094, 0.125, 0.369]
+const VERT_LOGO: [number, number, number] = [0.369, 0.898, 0.627]
 const TEXTE: [number, number, number] = [0.16, 0.15, 0.32]
 const GRIS: [number, number, number] = [0.42, 0.41, 0.55]
 const LAVANDE: [number, number, number] = [0.937, 0.933, 0.988]
@@ -80,28 +82,105 @@ function versWinAnsi(texte: string): string {
 
 const rgb = (c: [number, number, number]) => c.map((v) => v.toFixed(3)).join(' ')
 
+export interface OptionsPdf {
+  /** « document » : en-tête Passerelle complet ; « lettre » : papier à lettre de l'étudiant, discret. */
+  style?: 'document' | 'lettre'
+  beneficiaire?: { nom: string; email?: string | null }
+  reference?: string
+  date?: string
+}
+
+const K = 0.5523 // approximation d'un quart d'ellipse par une courbe de Bézier
+
 class Pages {
   pages: string[] = []
   flux = ''
   y = H - MARGE
 
-  constructor(private titreDoc: string) {
+  constructor(
+    private titreDoc: string,
+    private options: OptionsPdf,
+  ) {
     this.nouvelle()
+  }
+
+  /** Logo Passerelle (pont sur fond bleu nuit), dessiné en vectoriel. x, y : coin bas gauche. */
+  logo(x: number, y: number, taille: number) {
+    const s = taille / 1024
+    const X = (v: number) => (x + v * s).toFixed(2)
+    const Y = (v: number) => (y + taille - v * s).toFixed(2)
+    const r = 230
+    // Carré arrondi
+    this.flux += `${rgb(NUIT)} rg ${X(r)} ${Y(0)} m ${X(1024 - r)} ${Y(0)} l `
+    this.flux += `${X(1024 - r + r * K)} ${Y(0)} ${X(1024)} ${Y(r - r * K)} ${X(1024)} ${Y(r)} c ${X(1024)} ${Y(1024 - r)} l `
+    this.flux += `${X(1024)} ${Y(1024 - r + r * K)} ${X(1024 - r + r * K)} ${Y(1024)} ${X(1024 - r)} ${Y(1024)} c ${X(r)} ${Y(1024)} l `
+    this.flux += `${X(r - r * K)} ${Y(1024)} ${X(0)} ${Y(1024 - r + r * K)} ${X(0)} ${Y(1024 - r)} c ${X(0)} ${Y(r)} l `
+    this.flux += `${X(0)} ${Y(r - r * K)} ${X(r - r * K)} ${Y(0)} ${X(r)} ${Y(0)} c f\n`
+    // Tablier et suspentes (blanc), arche (vert)
+    this.flux += `1 J 1 1 1 RG ${(56 * s).toFixed(2)} w ${X(250)} ${Y(606)} m ${X(772)} ${Y(606)} l S\n`
+    this.flux += `${(34 * s).toFixed(2)} w ${X(398)} ${Y(505)} m ${X(398)} ${Y(590)} l S ${X(512)} ${Y(465)} m ${X(512)} ${Y(590)} l S ${X(625)} ${Y(505)} m ${X(625)} ${Y(590)} l S\n`
+    const rx = 204
+    const ry = 163
+    this.flux += `${rgb(VERT_LOGO)} RG ${(56 * s).toFixed(2)} w ${X(308)} ${Y(606)} m `
+    this.flux += `${X(308)} ${Y(606 - ry * K)} ${X(512 - rx * K)} ${Y(443)} ${X(512)} ${Y(443)} c `
+    this.flux += `${X(512 + rx * K)} ${Y(443)} ${X(716)} ${Y(606 - ry * K)} ${X(716)} ${Y(606)} c S 0 J\n`
   }
 
   nouvelle() {
     if (this.flux) this.pages.push(this.flux)
     this.flux = ''
-    // Bandeau Passerelle
-    this.rect(0, H - 34, L, 34, LAVANDE)
-    this.texte('Passerelle', MARGE, H - 22, 11, true, NUIT)
-    const t = this.titreDoc
-    this.texte(t, L - MARGE - largeur(t, 9), H - 22, 9, false, GRIS)
-    this.y = H - 34 - 36
+    const premiere = this.pages.length === 0
+    const { style = 'document', beneficiaire, reference, date } = this.options
+
+    if (style === 'lettre') {
+      this.y = H - MARGE - 10
+      return
+    }
+
+    if (premiere) {
+      // En-tête complet : logo, marque, référence et date
+      const haut = H - 42
+      this.logo(MARGE, haut - 38, 38)
+      this.texte('Passerelle', MARGE + 48, haut - 17, 17, true, NUIT)
+      this.texte('Tes aides étudiantes, sans paperasse', MARGE + 48, haut - 31, 8.5, false, GRIS)
+      const lignesDroite = [
+        [this.titreDoc.toUpperCase(), true],
+        [reference ? `Réf. ${reference}` : '', false],
+        [date ? `Établi le ${date}` : '', false],
+      ] as const
+      lignesDroite.forEach(([t, gras], i) => {
+        if (t) this.texte(t, L - MARGE - largeur(t, gras ? 8.5 : 8.5, gras), haut - 12 - i * 12, 8.5, gras, gras ? NUIT : GRIS)
+      })
+      // Filet bleu nuit avec une touche de vert
+      this.rect(MARGE, haut - 52, UTILE, 1.6, NUIT)
+      this.rect(MARGE, haut - 52, 60, 1.6, VERT_LOGO)
+      this.y = haut - 70
+      // Bloc d'identification
+      if (beneficiaire) {
+        this.rect(MARGE, this.y - 44, UTILE, 44, LAVANDE)
+        this.rect(MARGE, this.y - 44, 3, 44, NUIT)
+        this.texte('ÉTABLI POUR', MARGE + 14, this.y - 15, 7.5, true, GRIS)
+        this.texte(beneficiaire.nom, MARGE + 14, this.y - 31, 11.5, true, NUIT)
+        if (beneficiaire.email) {
+          const e = beneficiaire.email
+          this.texte('CONTACT', L - MARGE - 14 - Math.max(largeur(e, 9.5), largeur('CONTACT', 7.5, true)), this.y - 15, 7.5, true, GRIS)
+          this.texte(e, L - MARGE - 14 - Math.max(largeur(e, 9.5), largeur('CONTACT', 7.5, true)), this.y - 31, 9.5, false, TEXTE)
+        }
+        this.y -= 62
+      }
+    } else {
+      // Pages suivantes : en-tête réduit
+      this.logo(MARGE, H - 44, 18)
+      this.texte('Passerelle', MARGE + 25, H - 38, 10, true, NUIT)
+      const t = this.titreDoc
+      this.texte(t, L - MARGE - largeur(t, 8.5), H - 38, 8.5, false, GRIS)
+      this.rect(MARGE, H - 52, UTILE, 0.8, LAVANDE_FONCE)
+      this.y = H - 70
+    }
   }
 
   place(hauteur: number) {
-    if (this.y - hauteur < MARGE + 20) this.nouvelle()
+    if (this.y - hauteur < MARGE + 30) this.nouvelle()
   }
 
   rect(x: number, y: number, l: number, h: number, couleur: [number, number, number]) {
@@ -122,10 +201,22 @@ class Pages {
 
   fin(): string[] {
     this.pages.push(this.flux)
-    // Numéros de page
+    const lettre = this.options.style === 'lettre'
     return this.pages.map((p, i) => {
-      const n = `Page ${i + 1} sur ${this.pages.length}`
-      return `${p}BT ${rgb(GRIS)} rg /F1 8 Tf ${(L - MARGE - largeur(n, 8)).toFixed(2)} 28 Td (${versWinAnsi(n)}) Tj ET\n`
+      let pied = ''
+      const n = `${i + 1} / ${this.pages.length}`
+      if (lettre) {
+        const t = 'Lettre préparée avec Passerelle'
+        pied += `BT ${rgb(GRIS)} rg /F1 7.5 Tf ${(L / 2 - largeur(t, 7.5) / 2).toFixed(2)} 30 Td (${versWinAnsi(t)}) Tj ET\n`
+      } else {
+        pied += `${rgb(LAVANDE_FONCE)} RG 0.8 w ${MARGE} 48 m ${L - MARGE} 48 l S\n`
+        const g1 = 'Passerelle · team1@eugeniaschool.com'
+        const g2 = 'Estimation indicative établie à partir de tes documents, sans valeur contractuelle.'
+        pied += `BT ${rgb(NUIT)} rg /F2 7.5 Tf ${MARGE} 36 Td (${versWinAnsi(g1)}) Tj ET\n`
+        pied += `BT ${rgb(GRIS)} rg /F1 7 Tf ${MARGE} 26 Td (${versWinAnsi(g2)}) Tj ET\n`
+        pied += `BT ${rgb(GRIS)} rg /F1 7.5 Tf ${(L - MARGE - largeur(n, 7.5)).toFixed(2)} 36 Td (${versWinAnsi(n)}) Tj ET\n`
+      }
+      return p + pied
     })
   }
 }
@@ -155,7 +246,8 @@ function dessiner(p: Pages, b: Bloc) {
       const gras = b.type === 'paragraphe' && Boolean(b.gras)
       for (const l of couper(b.texte, taille, UTILE, gras)) {
         p.place(taille + 6)
-        if (l) p.texte(l, MARGE, p.y - taille, taille, gras, b.type === 'note' ? GRIS : TEXTE)
+        const x = b.type === 'paragraphe' && b.droite ? L - MARGE - largeur(l, taille, gras) : MARGE
+        if (l) p.texte(l, x, p.y - taille, taille, gras, b.type === 'note' ? GRIS : TEXTE)
         p.y -= taille + 5
       }
       p.y -= 4
@@ -206,17 +298,17 @@ function dessiner(p: Pages, b: Bloc) {
       }
       entete()
       b.lignes.forEach((ligne, n) => {
-        if (p.y - 17 < MARGE + 20) {
+        if (p.y - 15 < MARGE + 30) {
           p.nouvelle()
           entete()
         }
-        if (n % 2 === 1) p.rect(MARGE, p.y - 17, UTILE, 17, LAVANDE)
+        if (n % 2 === 1) p.rect(MARGE, p.y - 15, UTILE, 15, LAVANDE)
         ligne.forEach((v, i) => {
           const droite = b.droite?.includes(i)
-          const x = droite ? xs[i] + cols[i] - 8 - largeur(v, 9) : xs[i] + 8
-          p.texte(v, x, p.y - 12, 9)
+          const x = droite ? xs[i] + cols[i] - 8 - largeur(v, 8.8) : xs[i] + 8
+          p.texte(v, x, p.y - 10.8, 8.8)
         })
-        p.y -= 17
+        p.y -= 15
       })
       p.y -= 10
       break
@@ -241,8 +333,8 @@ function dessiner(p: Pages, b: Bloc) {
 }
 
 /** Fabrique un PDF (octets) à partir de blocs. */
-export function creerPdf(titreDoc: string, blocs: Bloc[]): Uint8Array {
-  const p = new Pages(titreDoc)
+export function creerPdf(titreDoc: string, blocs: Bloc[], options: OptionsPdf = {}): Uint8Array {
+  const p = new Pages(titreDoc, options)
   for (const b of blocs) dessiner(p, b)
   const flux = p.fin()
 
