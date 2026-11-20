@@ -6,7 +6,14 @@ Projet de la **Team 1** pour le hackathon **« Build The Future » 2026** (Eugen
 
 **👉 Site en ligne : https://passerelle-drab.vercel.app**
 
-![Page d'accueil de Passerelle](docs/captures/accueil-ordinateur.png)
+![Tableau de bord de l'étudiant connecté : suivi des 6 étapes du parcours](docs/captures/tableau-de-bord.png)
+
+<details>
+<summary>Page d'accueil d'un visiteur non connecté</summary>
+
+![Page d'accueil de Passerelle pour un visiteur](docs/captures/accueil-ordinateur.png)
+
+</details>
 
 ## Sommaire
 
@@ -162,4 +169,12 @@ docs/         Business model, consignes du hackathon, audit qualité, captures d
 
 ## Équipe
 
-Team 1 · Eugenia School : Margot Frappa, Noah Rebyffé, Yecin Maaref (M1) · Lamyaa Marzouq, Ema Fernandes (M2).
+Team 1 · Eugenia School
+
+| Membre | Rôle |
+|---|---|
+| Yecin Maaref | CEO · Chief Executive Officer |
+| Noah Rebyffé | CTO · Chief Technology Officer |
+| Margot Frappa | CAO · Chief Automation Officer |
+| Ema Fernandes | CAO et CDO · Chief Automation Officer, Chief Data Officer |
+| Lamyaa Marzouq | CPO · Chief Product Officer |
